@@ -1,0 +1,11 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Tomes of Chaos</title>
+<style>html,body{margin:0;height:100%;background:#0c0a14;color:#cbb;font-family:sans-serif}</style></head>
+<body><noscript>This game needs JavaScript.</noscript>
+<script>
+// Threaded build (audio mixed on its own thread) when the page is cross-origin isolated; otherwise the single-threaded fallback.
+var mt = false;
+try { mt = window.crossOriginIsolated === true && typeof SharedArrayBuffer !== 'undefined'; } catch (e) {}
+location.replace((mt ? 'mt/' : 'st/') + 'index.html' + location.search);
+</script></body></html>

@@ -149,8 +149,8 @@ def build(mon, dcss):
     # ---- golems and statues
     out["stone_golem"] = colorize(L("crystal_guardian"), *STONE, gamma=0.9)
     out["clay_golem"] = colorize(L("flesh_golem"), *CLAY)
-    out["mud_golem"] = colorize(L("toenail_golem"), *MUD)
-    out["clay_servant"] = colorize(L("ushabti"), *CLAY)
+    out["mud_golem"] = colorize(L("ogre"), "#1e2410", "#8a8a50")
+    out["clay_servant"] = colorize(L("mannequin_goblin"), *CLAY)
     out["living_statue"] = colorize(L("statue_base"), "#34322e", "#e0dcd0", gamma=0.8)
     out["mud_elemental"] = colorize(L("acid_blob"), *MUD)
     out["elemental_prince"] = P("base/djinni_gold_m")
@@ -172,8 +172,14 @@ def build(mon, dcss):
     out["imp_servant"] = colorize(L("iron_imp"), "#401010", "#ff8070")
     # ---- archers carry bows
     bow = P("hand1/bow")
+    bb = bow.getbbox(); bowc = bow.crop(bb)
     def with_bow(base, dx=0, dy=0, size=None):
-        b = base.copy(); b.alpha_composite(bow, (dx, dy)); return b
+        """Hold the bow in the hand: its grip sits against the body's left edge, at chest height."""
+        b = base.copy(); bx = b.getbbox()
+        ax = bx[0] - bowc.width + 3           # bow's right edge overlaps the body by 3 px
+        ay = bx[1] + (bx[3] - bx[1]) // 2 - bowc.height // 2
+        b.alpha_composite(bowc, (max(0, ax), max(0, ay)))
+        return b
     out["goblin_archer"] = with_bow(L("hobgoblin"), -3, 1)
     out["skeleton_archer"] = with_bow(L("skeletal_warrior"), -4, 1)
     out["phantom_archer"] = with_bow(L("shadow_elf"), -3, 1)

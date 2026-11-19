@@ -130,22 +130,23 @@ def build(mon, dcss):
     out["pegasus"] = peg
     # ---- big cats
     out["lion"] = fit(ex("lion.png"))
-    pan = ex("panther.png")
-    t = colorize(pan, "#7a3208", "#f0a040", gamma=0.7)
+    pan = flip(ex("panther.png"))
+    t = colorize(pan, "#9a4a10", "#ffb450", gamma=0.6)
     ta = np.array(t)
-    for y in range(ta.shape[0]):
-        for x in range(ta.shape[1]):
-            if ta[y, x, 3] and ((x * 2 + y * 3) % 7 in (0, 1)) and (ta[y, x, :3].sum() > 200):
-                ta[y, x, :3] = (40, 22, 10)
+    h, w = ta.shape[:2]
+    for y in range(h):
+        for x in range(w):
+            if ta[y, x, 3] and ta[y, x, :3].sum() > 260 and ((x + y // 2) % 4 in (0, 1)) and y < h - 4:
+                ta[y, x, :3] = (34, 18, 8)
+            elif ta[y, x, 3] and y > h - 9 and ta[y, x, :3].sum() > 330:
+                ta[y, x, :3] = (250, 232, 200)
     out["tiger"] = fit(Image.fromarray(ta))
     # ---- boar
-    boar = colorize(L("hog"), "#1c120c", "#8a6a50", gamma=1.1)
-    px(boar, [(7, 20), (7, 21), (6, 19), (8, 22), (6, 22)], "#f4eee0")
-    out["dire_boar"] = boar
+    out["dire_boar"] = flip(ex("boar.png"))
     # ---- hydras (multi-headed DCSS ones)
     out["hydra"] = L("hydra3"); out["hydra_young"] = L("hydra1"); out["elder_hydra"] = L("hydra5")
     # ---- tentacle rising out of the ground
-    out["tentacle"] = colorize(L("starspawn_tentacle_N"), "#101a18", "#6a9a88", gamma=0.8)
+    out["tentacle"] = colorize(L("starspawn_tentacle_N"), "#101a18", "#6a9a88", gamma=0.8).transpose(Image.FLIP_TOP_BOTTOM)
     # ---- golems and statues
     out["stone_golem"] = colorize(L("crystal_guardian"), *STONE, gamma=0.9)
     out["clay_golem"] = colorize(L("flesh_golem"), *CLAY)

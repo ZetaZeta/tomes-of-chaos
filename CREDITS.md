@@ -12,3 +12,4 @@ The other two art options ("DreamLayer-generated art" and "Original pixel art") 
 - Lion and panther (recoloured as the tiger): "Lion" and "Black Panther" by Sketlux, OpenGameArt (CC0).
 - Unicorn: "Unicorn" by sparrow666 / bluecarrot16, OpenGameArt, CC-BY 3.0 (mane recoloured).
 - All other monsters are Dungeon Crawl Stone Soup tiles, recoloured or composited (see tools/crawl_post.py).
+- Boar: "Boar 32x32" on OpenGameArt (CC0).

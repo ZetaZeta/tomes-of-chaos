@@ -173,12 +173,24 @@ def build(mon, dcss):
     out["imp_servant"] = colorize(L("iron_imp"), "#401010", "#ff8070")
     # ---- archers carry bows
     bow = P("hand1/bow")
+    bow = bow.copy()
+    for yy in range(16, 19):                       # close the hand gap so the bow is one continuous arc
+        for xx in range(5, 8):
+            bow.putpixel((xx, yy), bow.getpixel((xx, 15)))
     bb = bow.getbbox(); bowc = bow.crop(bb)
     def with_bow(base, dx=0, dy=0, size=None):
         """Hold the bow in the hand: its grip sits against the body's left edge, at chest height."""
-        b = base.copy(); bx = b.getbbox()
-        ax = bx[0] - bowc.width + 3           # bow's right edge overlaps the body by 3 px
-        ay = bx[1] + (bx[3] - bx[1]) // 2 - bowc.height // 2
+        b = base.copy(); al = np.array(b)[:, :, 3]
+        rows = np.where((al > 200).any(axis=1))[0]
+        cy = int(rows.min() + (rows.max() - rows.min()) * 0.45)
+        lefts = []
+        for yy in range(max(0, cy - 4), cy + 5):
+            xs = np.where(al[yy] > 200)[0]
+            if len(xs):
+                lefts.append(int(xs.min()))
+        left = int(np.median(lefts))                      # typical body edge near chest height
+        ax = left + 2                                   # the arc's deepest point touches the body edge
+        ay = cy - bowc.height // 2
         b.alpha_composite(bowc, (max(0, ax), max(0, ay)))
         return b
     out["goblin_archer"] = with_bow(L("hobgoblin"), -3, 1)

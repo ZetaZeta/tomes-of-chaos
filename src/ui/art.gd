@@ -637,6 +637,8 @@ static func unit_tex(def_id: String, arch: String, col: Color) -> Texture2D:
 ## Wizard bodies (grey, DreamLayer-generated) tinted at runtime by the wizard's colour.
 const WIZ_BODIES := 7
 static func wizard_tex(ent: Entity) -> Texture2D:
+	if style == "crawl":
+		return _crawl_wizard(ent)
 	var idx := 0
 	if ent.team != 0:
 		idx = 1 + (absi(ent.nm.hash()) % (WIZ_BODIES - 1))
@@ -648,23 +650,6 @@ static func wizard_tex(ent: Entity) -> Texture2D:
 		return unit_tex(ent.arch, ent.arch, ent.col)
 	var img: Image = base.get_image()
 	img.convert(Image.FORMAT_RGBA8)
-	if style == "crawl":
-		# colour only the robe and hat (mask m_N.png); face, hands and beard keep their own colours
-		var mt := _external("res://assets/sprites/wizards/m_%d.png" % idx)
-		if mt != null:
-			var mi: Image = mt.get_image()
-			mi.convert(Image.FORMAT_RGBA8)
-			for y in range(img.get_height()):
-				for x in range(img.get_width()):
-					var c := img.get_pixel(x, y)
-					if c.a <= 0.0 or mi.get_pixel(x, y).a < 0.5:
-						continue
-					var lum := c.r * 0.299 + c.g * 0.587 + c.b * 0.114
-					var k := clampf(lum * 1.6 + 0.3, 0.0, 1.25)
-					img.set_pixel(x, y, Color(clampf(ent.col.r * k, 0, 1), clampf(ent.col.g * k, 0, 1), clampf(ent.col.b * k, 0, 1), c.a))
-			var tx: Texture2D = ImageTexture.create_from_image(img)
-			_cache[key] = tx
-			return tx
 	for y in range(img.get_height()):
 		for x in range(img.get_width()):
 			var c := img.get_pixel(x, y)
@@ -679,6 +664,57 @@ static func wizard_tex(ent: Entity) -> Texture2D:
 	var t: Texture2D = ImageTexture.create_from_image(img)
 	_cache[key] = t
 	return t
+
+## Wizards in the crawl style are paper dolls: robe and hat from the primary school, staff and held item from the
+## secondary one (their prepared spells decide), body and beard from the name.  Looks are fixed on first use.
+static func _wizard_schools(ent: Entity) -> Array:
+	if ent.has_meta("crawl_schools"):
+		return ent.get_meta("crawl_schools")
+	var count := {}
+	for sid in ent.spells:
+		if DB.spells.has(sid):
+			var sc: String = DB.spells[sid].school
+			count[sc] = int(count.get(sc, 0)) + 1
+	var keys := count.keys()
+	keys.sort_custom(func(a, b): return count[a] > count[b] or (count[a] == count[b] and str(a) < str(b)))
+	var primary: String = keys[0] if keys.size() > 0 else (ent.school if WizardLooks.SCHOOLS.has(ent.school) else "evocation")
+	var secondary: String = keys[1] if keys.size() > 1 else primary
+	var out := [primary, secondary]
+	ent.set_meta("crawl_schools", out)
+	return out
+
+static func _layer(sub: String, name: String) -> Image:
+	var t := _external("res://assets/sprites/wizlayers/%s/%s.png" % [sub, name])
+	if t == null:
+		return null
+	var im: Image = t.get_image()
+	im.convert(Image.FORMAT_RGBA8)
+	return im
+
+static func _crawl_wizard(ent: Entity) -> Texture2D:
+	var sch := _wizard_schools(ent)
+	var h := absi(ent.nm.hash())
+	var base: String = "human_m" if ent.team == 0 else WizardLooks.BASES[h % WizardLooks.BASES.size()]
+	var beard := ""
+	if base.ends_with("_m"):
+		beard = "full_white" if ent.team == 0 else WizardLooks.BEARDS[(h / 7) % WizardLooks.BEARDS.size()]
+	var key := "w2:%s:%s:%s:%s" % [sch[0], sch[1], base, beard]
+	if _cache.has(key):
+		return _cache[key]
+	var a: Array = WizardLooks.SCHOOLS[sch[0]]
+	var b: Array = WizardLooks.SCHOOLS[sch[1]]
+	var img := _layer("base", base)
+	if img == null:
+		return unit_tex(ent.arch, ent.arch, ent.col)
+	for pair in [["body", a[0]], ["beard", beard], ["head", a[1]], ["hand2", b[3]], ["hand1", b[2]]]:
+		if pair[1] == "":
+			continue
+		var l := _layer(pair[0], pair[1])
+		if l != null:
+			img.blend_rect(l, Rect2i(0, 0, l.get_width(), l.get_height()), Vector2i.ZERO)
+	var tx: Texture2D = ImageTexture.create_from_image(img)
+	_cache[key] = tx
+	return tx
 
 static func object_tex(def_id: String, sym: String, col: Color) -> Texture2D:
 	var key := "o:%s" % def_id
@@ -771,7 +807,13 @@ static func _generated_tile(terrain: String, v: int, pal: Array, under: String =
 			img = _tint(base, col, 1.0)
 			if terrain in ["pillar", "statue", "tree"] and under != "" and under != "floor":
 				# props stand on whatever floor surrounds them
-				var ub: Image = carpet_image(v, cmask) if under == "carpet" else _tile_src(under, v)
+				var ub: Image
+				if under == "carpet":
+					ub = carpet_image(v, cmask)
+				elif under == "scorched":
+					ub = _tint(base, Color("3a2c2a"), 1.0)
+				else:
+					ub = _tile_src(under, v)
 				if ub != null:
 					img = ub
 			if terrain in ["pillar", "statue", "tree"]:

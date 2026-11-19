@@ -84,6 +84,8 @@ func _weather_step(delta: float) -> void:
 			Sfx.thunder()
 
 ## Rain streaks, wind-blown dust, drifting fog and lightning, drawn over everything.
+var _dominant_floor := "floor"
+
 const PROPS := ["pillar", "statue", "tree"]
 const FLOORS := ["floor", "carpet", "sand", "snow", "mud", "grass", "ice", "rubble", "bones", "scorched", "shallow"]
 
@@ -99,6 +101,20 @@ func _floor_under(terr: Array, x: int, y: int, W: int, H: int) -> String:
 			var t: String = terr[ny * W + nx]
 			if t in FLOORS:
 				count[t] = int(count.get(t, 0)) + (2 if (dx == 0 or dy == 0) else 1)
+	var best := _dominant_floor
+	var bn := 0
+	for k in count:
+		if count[k] > bn:
+			bn = count[k]
+			best = k
+	return best
+
+## Carpet gets its fringe only at the edge of the map, never next to walls or props.
+func _most_common_floor(terr: Array) -> String:
+	var count := {}
+	for t in terr:
+		if t in FLOORS:
+			count[t] = int(count.get(t, 0)) + 1
 	var best := "floor"
 	var bn := 0
 	for k in count:
@@ -108,10 +124,7 @@ func _floor_under(terr: Array, x: int, y: int, W: int, H: int) -> String:
 	return best
 
 func _is_carpet(terr: Array, x: int, y: int, W: int, H: int) -> bool:
-	if x < 0 or y < 0 or x >= W or y >= H:
-		return false
-	var t: String = terr[y * W + x]
-	return t == "carpet" or (t in PROPS and _floor_under(terr, x, y, W, H) == "carpet")
+	return x >= 0 and y >= 0 and x < W and y < H
 
 ## bits: 1 carpet to the north, 2 east, 4 south, 8 west
 func _carpet_mask(terr: Array, x: int, y: int, W: int, H: int) -> int:
@@ -224,6 +237,8 @@ func _draw() -> void:
 				var i := y * W + x
 				var tex: Texture2D
 				if Art.style == "crawl":
+					if i == 0:
+						_dominant_floor = _most_common_floor(terr)
 					var under := ""
 					if terr[i] in PROPS:
 						under = _floor_under(terr, x, y, W, H)

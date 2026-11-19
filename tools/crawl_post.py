@@ -181,16 +181,11 @@ def build(mon, dcss):
     def with_bow(base, dx=0, dy=0, size=None):
         """Hold the bow in the hand: its grip sits against the body's left edge, at chest height."""
         b = base.copy(); al = np.array(b)[:, :, 3]
-        rows = np.where((al > 200).any(axis=1))[0]
-        cy = int(rows.min() + (rows.max() - rows.min()) * 0.45)
-        lefts = []
-        for yy in range(max(0, cy - 4), cy + 5):
-            xs = np.where(al[yy] > 200)[0]
-            if len(xs):
-                lefts.append(int(xs.min()))
-        left = int(np.median(lefts))                      # typical body edge near chest height
-        ax = left + 2                                   # the arc's deepest point touches the body edge
-        ay = cy - bowc.height // 2
+        ys, xs = np.where(al > 200)
+        left = int(xs.min())                              # leftmost solid pixel = the hand/arm
+        hy = int(ys[xs <= left + 1].mean())               # row of that hand
+        ax = left - 1                                     # grip (the arc's deepest point) one pixel short of the hand
+        ay = hy - bowc.height // 2
         b.alpha_composite(bowc, (max(0, ax), max(0, ay)))
         return b
     out["goblin_archer"] = with_bow(L("hobgoblin"), -3, 1)

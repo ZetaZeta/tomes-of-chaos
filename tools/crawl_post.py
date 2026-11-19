@@ -130,17 +130,7 @@ def build(mon, dcss):
     out["pegasus"] = peg
     # ---- big cats
     out["lion"] = fit(ex("lion.png"))
-    pan = flip(ex("panther.png"))
-    t = colorize(pan, "#9a4a10", "#ffb450", gamma=0.6)
-    ta = np.array(t)
-    h, w = ta.shape[:2]
-    for y in range(h):
-        for x in range(w):
-            if ta[y, x, 3] and ta[y, x, :3].sum() > 260 and ((x + y // 2) % 4 in (0, 1)) and y < h - 4:
-                ta[y, x, :3] = (34, 18, 8)
-            elif ta[y, x, 3] and y > h - 9 and ta[y, x, :3].sum() > 330:
-                ta[y, x, :3] = (250, 232, 200)
-    out["tiger"] = fit(Image.fromarray(ta))
+    out["tiger"] = fit(ex("tiger.png"))
     # ---- boar
     out["dire_boar"] = flip(ex("boar.png"))
     # ---- hydras (multi-headed DCSS ones)

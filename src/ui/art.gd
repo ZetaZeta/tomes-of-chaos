@@ -11,15 +11,17 @@ extends RefCounted
 const SZ := 16
 static var _cache: Dictionary = {}
 ## true = the DreamLayer-generated art in assets/sprites/, false = the original code-drawn pixel art.
-static var use_generated: bool = true
+static var use_generated: bool = false
 ## "dreamlayer" (generated art), "classic" (code-drawn pixel art) or "crawl" (Dungeon Crawl Stone Soup monsters + openRPG
 ## terrain, both CC0; files in assets/sprites_crawl/, built by tools/build_crawl_art.py).
-static var style: String = "dreamlayer"
+static var style: String = "crawl"
 
 static func load_settings() -> void:
 	var st := str(Prefs.get_v("art_style", ""))
 	if st == "":
-		st = "dreamlayer" if bool(Prefs.get_v("art_generated", true)) else "classic"
+		# no explicit choice yet: crawl is the default; keep "classic" for players who had picked the original art
+		var ag = Prefs.get_v("art_generated", null)
+		st = "classic" if (ag != null and not bool(ag)) else "crawl"
 	_apply_style(st)
 
 static func _apply_style(st: String) -> void:
@@ -646,6 +648,23 @@ static func wizard_tex(ent: Entity) -> Texture2D:
 		return unit_tex(ent.arch, ent.arch, ent.col)
 	var img: Image = base.get_image()
 	img.convert(Image.FORMAT_RGBA8)
+	if style == "crawl":
+		# colour only the robe and hat (mask m_N.png); face, hands and beard keep their own colours
+		var mt := _external("res://assets/sprites/wizards/m_%d.png" % idx)
+		if mt != null:
+			var mi: Image = mt.get_image()
+			mi.convert(Image.FORMAT_RGBA8)
+			for y in range(img.get_height()):
+				for x in range(img.get_width()):
+					var c := img.get_pixel(x, y)
+					if c.a <= 0.0 or mi.get_pixel(x, y).a < 0.5:
+						continue
+					var lum := c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+					var k := clampf(lum * 1.6 + 0.3, 0.0, 1.25)
+					img.set_pixel(x, y, Color(clampf(ent.col.r * k, 0, 1), clampf(ent.col.g * k, 0, 1), clampf(ent.col.b * k, 0, 1), c.a))
+			var tx: Texture2D = ImageTexture.create_from_image(img)
+			_cache[key] = tx
+			return tx
 	for y in range(img.get_height()):
 		for x in range(img.get_width()):
 			var c := img.get_pixel(x, y)
@@ -671,15 +690,15 @@ static func object_tex(def_id: String, sym: String, col: Color) -> Texture2D:
 		return ext
 	return _tex(key, func(): return object_image(sym, col))
 
-static func tile_tex(terrain: String, variant: int, pal: Array, env_id: String) -> Texture2D:
-	var key := "t:%s:%s:%d" % [env_id, terrain, variant]
+static func tile_tex(terrain: String, variant: int, pal: Array, env_id: String, under: String = "", cmask: int = 15) -> Texture2D:
+	var key := "t:%s:%s:%d:%s:%d" % [env_id, terrain, variant, under, cmask]
 	if _cache.has(key):
 		return _cache[key]
 	var ext := _external("res://assets/sprites/tiles/%s.png" % terrain)
 	if ext != null:
 		_cache[key] = ext
 		return ext
-	var gen := _generated_tile(terrain, absi(variant) % 4, pal)
+	var gen := _generated_tile(terrain, absi(variant) % 4, pal, under, cmask)
 	if gen != null:
 		_cache[key] = gen
 		return gen
@@ -722,10 +741,23 @@ static func _tint(img: Image, col: Color, boost: float = 1.0) -> Image:
 			full.set_pixel(x, y, a.lerp(full.get_pixel(x, y), 0.35))
 	return full
 
-static func _generated_tile(terrain: String, v: int, pal: Array) -> Texture2D:
+## Carpet piece with fringe. mask bits: 1 = carpet to the north, 2 = east, 4 = south, 8 = west.
+static func carpet_image(v: int, cmask: int) -> Image:
+	var r := "t" if (cmask & 1) == 0 else ("b" if (cmask & 4) == 0 else "m")
+	var c := "c"  # fringe only along the top and bottom of a carpet
+	var t := _external("res://assets/sprites/tiles/carpet_e_%s%s.png" % [r, c])
+	if t == null:
+		return _tile_src("carpet", v)
+	var img: Image = t.get_image()
+	img.convert(Image.FORMAT_RGBA8)
+	return img
+
+static func _generated_tile(terrain: String, v: int, pal: Array, under: String = "", cmask: int = 15) -> Texture2D:
 	var img: Image = null
 	match terrain:
-		"sand", "snow", "grass", "mud", "ice", "rubble", "bones", "carpet", "shallow", "water", "lava":
+		"carpet":
+			img = carpet_image(v, cmask) if style == "crawl" else _tile_src(terrain, v)
+		"sand", "snow", "grass", "mud", "ice", "rubble", "bones", "shallow", "water", "lava":
 			img = _tile_src(terrain, v)
 		"floor", "pillar", "statue", "tree", "scorched", "chasm":
 			var base := _tile_src("floor", v)
@@ -737,6 +769,11 @@ static func _generated_tile(terrain: String, v: int, pal: Array) -> Texture2D:
 			elif terrain == "chasm":
 				col = Color("0a0a12")
 			img = _tint(base, col, 1.0)
+			if terrain in ["pillar", "statue", "tree"] and under != "" and under != "floor":
+				# props stand on whatever floor surrounds them
+				var ub: Image = carpet_image(v, cmask) if under == "carpet" else _tile_src(under, v)
+				if ub != null:
+					img = ub
 			if terrain in ["pillar", "statue", "tree"]:
 				var ot := _external("res://assets/sprites/tiles/overlay_%s.png" % terrain)
 				if ot != null:

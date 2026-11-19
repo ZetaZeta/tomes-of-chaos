@@ -7,6 +7,7 @@ Raised on 2026-11-18. Each item is to be discussed with the user before work sta
 - [ ] Abjuration (44.5% win rate) and Divination (45.5%) trail the other schools (47-52%). Check with the paired test, then buff or give them a clearer role.
 - [ ] Mounts are new and the bot probably can't use them, so the sim can't say if they are too strong or weak. Watch balance.
 - [ ] Tune the weak level 1-2 control spells.
+- [ ] Remove or replace the plain level 1 "deal 1 damage of type X and nothing else" spells (added 2026-11-18, user request). They are too weak to be useful, frustrating as starting spells, and give a bad first impression. Replacements should be damage plus a secondary effect, and must not overlap existing spells. Probably needs more level 1 spells first, so design a batch of new level 1 spells before removing the old ones. Check which of them are starter spells (`starter` flag, `Game.roll_primer`).
 - [ ] Difficulty curve. Win rate is 64% / 43% / 32% across difficulty bands 1.x / 2.x / 3.x. Decide the win rate wanted at each band.
 
 ## Polish

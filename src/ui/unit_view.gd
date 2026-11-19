@@ -14,6 +14,7 @@ var dormant: bool = false
 var sprite: Sprite2D
 var flash: float = 0.0
 var hidden_trap: bool = false
+var facing := 0         # last horizontal direction (-1/+1); 0 = default for the team
 var turn_state := 0     # allies, player phase: 1 = can still act (marked), 2 = finished (dimmed), 0 = n/a
 
 func set_turn_state(v: int) -> void:
@@ -59,7 +60,6 @@ func refresh_texture() -> void:
 		else:
 			tex = Art.unit_tex(ent.def_id, ent.arch, col)
 	sprite.texture = tex
-	var flipped := sprite.scale.x < 0.0
 	var T := float(DB.TILE)
 	var s := T / float(maxi(tex.get_width(), tex.get_height()))
 	var bottom := T - (0.0 if is_obj else 4.0)
@@ -73,8 +73,7 @@ func refresh_texture() -> void:
 	s *= size_mult()
 	sprite.scale = Vector2(s, s)
 	sprite.position = Vector2((T - tex.get_width() * s) / 2.0, bottom - tex.get_height() * s)
-	if flipped:
-		face(-1)
+	_apply_facing()
 
 ## Enlarged units look bigger, shrunken ones smaller, tiny ones minuscule.
 func size_mult() -> float:
@@ -92,9 +91,18 @@ func size_mult() -> float:
 func face(dx: int) -> void:
 	if dx == 0 or sprite == null:
 		return
+	facing = dx
+	_apply_facing()
+
+## Allies face right and enemies left unless they just moved/attacked. DCSS art is drawn facing left.
+func _apply_facing() -> void:
+	if sprite == null or sprite.texture == null or is_obj:
+		return
+	var dir := facing if facing != 0 else (1 if team == 0 else -1)
+	var flip := (dir > 0) if Art.style == "crawl" else (dir < 0)
 	var s := absf(sprite.scale.x)
 	var w := sprite.texture.get_width() * s
-	if dx < 0:
+	if flip:
 		sprite.scale.x = -s
 		sprite.position.x = (DB.TILE + w) / 2.0
 	else:

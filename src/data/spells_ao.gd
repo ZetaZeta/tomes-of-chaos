@@ -5,8 +5,8 @@ extends RefCounted
 
 static func list() -> Array:
 	var L: Array = []
-	L.append(SB.sp("call_flame_imp", "Call Flame Imp", "pyromancy", 3, "free", 4, "single", 0, [Fx.summon_x("flame_imp", 1, false, 8)],
-		"A flame imp serves you for eight turns. Select it to cast Fire Bolt, Scorch or Smoke Screen from its own list, one spell a turn."))
+	L.append(SB.sp("call_flame_imp", "Call Flame Sprite", "pyromancy", 3, "free", 4, "single", 0, [Fx.summon_x("flame_imp", 1, false, 8)],
+		"A flame sprite serves you for eight turns. Select it to cast Fire Bolt, Scorch or Smoke Screen from its own list, one spell a turn."))
 	L.append(SB.sp("call_frost_sprite", "Call Frost Sprite", "cryomancy", 3, "free", 4, "single", 0, [Fx.summon_x("frost_sprite", 1, false, 8)],
 		"A frost sprite serves for eight turns and casts Frost Bolt, Frost Armor or Skid Ice at will, one a turn."))
 	L.append(SB.sp("call_spark_wisp", "Call Spark Wisp", "storm", 3, "free", 4, "single", 0, [Fx.summon_x("spark_wisp", 1, false, 8)],

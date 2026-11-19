@@ -39,6 +39,21 @@ def main():
         if p is None:
             miss.append((mid, src)); continue
         shutil.copy(p, os.path.join(OUT, "units", mid + ".png"))
+    import crawl_post, hashlib, re
+    for mid, im in crawl_post.build(mon, DCSS).items():
+        im.save(os.path.join(OUT, "units", mid + ".png"))
+    # no two monsters may share a sprite: later ones are recoloured toward their own colour
+    cols = dict(re.findall(r'm\("(\w+)", "[^"]*", "\w+", "(\w{6})"', open(os.path.join(os.path.dirname(__file__), "..", "src", "data", "monster_defs.gd")).read()))
+    seen = {}
+    for mid in sorted(os.listdir(os.path.join(OUT, "units"))):
+        mid = mid[:-4]; f = os.path.join(OUT, "units", mid + ".png")
+        h = hashlib.md5(open(f, "rb").read()).hexdigest()
+        if h in seen and mid in cols:
+            im = Image.open(f).convert("RGBA")
+            crawl_post.tint(im, "#" + cols[mid], 0.55).save(f)
+            print("recoloured duplicate", mid, "(same as %s)" % seen[h])
+        else:
+            seen.setdefault(h, mid)
     wizards()
     objects()
     print("units", len(os.listdir(os.path.join(OUT, "units"))), "missing", miss)

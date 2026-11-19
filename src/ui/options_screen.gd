@@ -95,9 +95,10 @@ func _build_display() -> void:
 	var ob := OptionButton.new()
 	ob.add_item("DreamLayer-generated art")
 	ob.add_item("Original pixel art")
-	ob.selected = 0 if Art.use_generated else 1
+	ob.add_item("Dungeon Crawl style (CC0 art)")
+	ob.selected = ["dreamlayer", "classic", "crawl"].find(Art.style)
 	ob.item_selected.connect(func(i: int):
-		Art.set_generated(i == 0)
+		Art.set_style(["dreamlayer", "classic", "crawl"][i])
 		main.theme = UIKit.make_theme()
 		main.show_options(from))
 	_row("Art style", ob)

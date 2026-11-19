@@ -12,14 +12,28 @@ const SZ := 16
 static var _cache: Dictionary = {}
 ## true = the DreamLayer-generated art in assets/sprites/, false = the original code-drawn pixel art.
 static var use_generated: bool = true
+## "dreamlayer" (generated art), "classic" (code-drawn pixel art) or "crawl" (Dungeon Crawl Stone Soup monsters + openRPG
+## terrain, both CC0; files in assets/sprites_crawl/, built by tools/build_crawl_art.py).
+static var style: String = "dreamlayer"
 
 static func load_settings() -> void:
-	use_generated = bool(Prefs.get_v("art_generated", true))
+	var st := str(Prefs.get_v("art_style", ""))
+	if st == "":
+		st = "dreamlayer" if bool(Prefs.get_v("art_generated", true)) else "classic"
+	_apply_style(st)
+
+static func _apply_style(st: String) -> void:
+	style = st
+	use_generated = (st == "dreamlayer")
+
+static func set_style(st: String) -> void:
+	_apply_style(st)
+	_cache.clear()
+	Prefs.set_v("art_style", st)
+	Prefs.set_v("art_generated", st == "dreamlayer")
 
 static func set_generated(on: bool) -> void:
-	use_generated = on
-	_cache.clear()
-	Prefs.set_v("art_generated", on)
+	set_style("dreamlayer" if on else "classic")
 
 # ------------------------------------------------------------------ palette
 static func _pal(col: Color) -> Dictionary:
@@ -598,7 +612,9 @@ static func _tex(key: String, maker: Callable) -> Texture2D:
 	return t
 
 static func _external(path: String) -> Texture2D:
-	if not use_generated:
+	if style == "crawl":
+		path = path.replace("res://assets/sprites/", "res://assets/sprites_crawl/")
+	elif not use_generated:
 		return null
 	if ResourceLoader.exists(path):
 		var t = load(path)
@@ -694,6 +710,18 @@ static func _retint(img: Image, col: Color, boost: float = 1.0) -> Image:
 			out.set_pixel(x, y, Color(clampf(col.r * k, 0, 1), clampf(col.g * k, 0, 1), clampf(col.b * k, 0, 1), 1.0))
 	return out
 
+## Environment tint. In the crawl style the real tile colours are kept and only nudged towards the palette.
+static func _tint(img: Image, col: Color, boost: float = 1.0) -> Image:
+	if style != "crawl":
+		return _retint(img, col, boost)
+	var grey := col.r * 0.299 + col.g * 0.587 + col.b * 0.114
+	var full := _retint(img, col.lerp(Color(grey, grey, grey), 0.55), boost)
+	for y in range(img.get_height()):
+		for x in range(img.get_width()):
+			var a := img.get_pixel(x, y)
+			full.set_pixel(x, y, a.lerp(full.get_pixel(x, y), 0.35))
+	return full
+
 static func _generated_tile(terrain: String, v: int, pal: Array) -> Texture2D:
 	var img: Image = null
 	match terrain:
@@ -708,7 +736,7 @@ static func _generated_tile(terrain: String, v: int, pal: Array) -> Texture2D:
 				col = Color("3a2c2a")
 			elif terrain == "chasm":
 				col = Color("0a0a12")
-			img = _retint(base, col, 1.0)
+			img = _tint(base, col, 1.0)
 			if terrain in ["pillar", "statue", "tree"]:
 				var ot := _external("res://assets/sprites/tiles/overlay_%s.png" % terrain)
 				if ot != null:
@@ -718,11 +746,11 @@ static func _generated_tile(terrain: String, v: int, pal: Array) -> Texture2D:
 		"wall":
 			var wb := _tile_src("wall", v)
 			if wb != null:
-				img = _retint(wb, Color(pal[2]).lightened(0.05), 1.0)
+				img = _tint(wb, Color(pal[2]).lightened(0.05), 1.0)
 		"bog":
 			var mb := _tile_src("mud", v)
 			if mb != null:
-				img = _retint(mb, Color("4a6a30"), 1.0)
+				img = _tint(mb, Color("4a6a30"), 1.0)
 	if img == null:
 		return null
 	return ImageTexture.create_from_image(img)

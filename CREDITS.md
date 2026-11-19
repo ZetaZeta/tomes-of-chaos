@@ -1,0 +1,8 @@
+# Art credits
+
+The "Dungeon Crawl style" art option (`assets/sprites_crawl/`, built by `tools/build_crawl_art.py`) uses:
+
+- **Dungeon Crawl Stone Soup tiles** (monsters, wizards, trees): https://github.com/crawl/crawl, `crawl-ref/source/rltiles`. The tiles are public domain / CC0 as distributed by the project (derived in part from the public-domain RLTiles set).
+- **Open RPG Fantasy Tilesets** by Final Boss Blues (terrain, props): https://finalbossblues.itch.io/openrtp-tiles, CC0 / public domain.
+
+The other two art options ("DreamLayer-generated art" and "Original pixel art") are described in the README.

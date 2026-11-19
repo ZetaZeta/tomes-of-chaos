@@ -300,8 +300,8 @@ func _store() -> void:
 			["volcano", "slay_all", 2.6, 203, ["mantle_of_fire", "shield"], "mantle_of_fire"],
 			["temple", "slay_all", 2.4, 204, ["giant_size", "shield"], "giant_size"],
 		]
-	for mode in (["after"] if fresh else ["after", "before"]):
-		Art.use_generated = (mode == "after")
+	for mode in (["crawl"] if "crawl" in OS.get_cmdline_user_args() else (["after"] if fresh else ["after", "before"])):
+		Art._apply_style("crawl" if mode == "crawl" else ("dreamlayer" if mode == "after" else "classic"))
 		Art._cache.clear()
 		theme = UIKit.make_theme()
 		Game.new_game("Merlinda")
@@ -349,7 +349,7 @@ func _store() -> void:
 				bs._do_cast(sc[5], best)
 				await get_tree().create_timer(0.45).timeout
 				get_viewport().get_texture().get_image().save_png("user://store/%s_battle_%s_%d_1.png" % [mode, sc[0], sc[3]])
-	Art.use_generated = true
+	Art._apply_style("dreamlayer")
 	Art._cache.clear()
 	print("STORE done")
 	get_tree().quit()

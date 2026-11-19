@@ -22,7 +22,9 @@ class EnvPreview extends Control:
 					t = env.solid[rng.randi() % env.solid.size()]
 				elif r < 0.30 and env.fluid != "":
 					t = env.fluid
-				var tex := Art.tile_tex(t, rng.randi() % 4, env.pal, env_id)
+				# pillars, statues and trees stand on the environment's own floor
+				var under: String = env.floor if t in BoardView.PROPS else ""
+				var tex := Art.tile_tex(t, rng.randi() % 4, env.pal, env_id, under)
 				draw_texture_rect(tex, Rect2(x * ts, y * ts, ts, ts), false)
 
 func setup(m: Control) -> void:

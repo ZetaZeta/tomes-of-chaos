@@ -12,9 +12,9 @@ static func list() -> Array:
 		[Fx.conc(6), Fx.st("charmed", 99, 1, "foe")], "Pull the strings of a foe's body: it fights for you while you concentrate (six turns at most)."))
 	L.append(SB.sp("blade_of_disjection", "Blade of Disjection", "evocation", 5, "free", 4, "single", 0,
 		[Fx.conc(6, true), Fx.obj("disjection_blade", 99)], "A shimmering plane of force hunts the nearest foe, cutting 4 force damage as it touches and 1 to anything beside it each turn. It vanishes if you are hurt or disabled."))
-	L.append(SB.sp("conjure_elemental_id", "Conjure the Elemental Id", "conjuration", 5, "free", 4, "single", 0,
-		[Fx.conc(10, true, true), Fx.summon_pool(["fire_elemental", "ice_elemental", "earth_elemental", "air_elemental", "water_elemental"])],
-		"A raw elemental answers to you while you hold it in mind. If your grip breaks (you are hurt or disabled) it runs wild; if the ten turns simply run out, it departs."))
+	L.append(SB.sp("conjure_elemental_id", "Conjure the Elemental Id", "conjuration", 5, "free", 4, "burst", 1,
+		[Fx.dmg(2, "force", "foe"), Fx.conc(10, true, true), Fx.summon_pool(["fire_elemental", "ice_elemental", "earth_elemental", "air_elemental", "water_elemental"])],
+		"The air tears open, hurting everything near the spot (2 force damage to foes), and a raw elemental answers to you while you hold it in mind. If your grip breaks (you are hurt or disabled) it runs wild; if the ten turns simply run out, it departs."))
 	L.append(SB.sp("phantom_of_doom", "Phantom of Doom", "illusion", 4, "free", 4, "single", 0,
 		[Fx.conc(6, true), Fx.obj("doom_phantom", 99)], "A phantom that exists only as dread hunts the nearest foe: one touch kills a living creature of 5 HP or less, and does 5 to the rest. It dissolves if you are hurt or disabled."))
 	L.append(SB.sp("phantasmal_archers", "Phantasmal Archers", "illusion", 2, "free", 4, "single", 0,

@@ -2756,8 +2756,17 @@ func end_player_phase() -> void:
 	# creatures that slipped their leash act on their own
 	for r in board.units_of(PLAYER):
 		if r.alive and r.kind == Entity.CREATURE and r.has_st("rampage"):
+			var grace: bool = r.props.get("fresh_rogue", false)
+			var held: Dictionary = {}
+			if grace:
+				# a freshly loosed creature spends its first action on the wizard's foes, then turns on everyone
+				r.props.erase("fresh_rogue")
+				held = r.status["rampage"]
+				r.status.erase("rampage")
 			start_turn(r)
 			EnemyAI.take_turn(self, r)
+			if grace and r.alive:
+				r.status["rampage"] = held
 	# uncontrolled allies (summons that fight for the wizard but cannot be commanded) act under the AI
 	for r in board.units_of(PLAYER).duplicate():
 		if r.alive and r.kind == Entity.CREATURE and r.props.get("free", false) and not r.has_st("rampage") and result == "":

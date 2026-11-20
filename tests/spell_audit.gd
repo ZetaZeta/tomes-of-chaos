@@ -5322,6 +5322,27 @@ func test_wave56() -> void:
 	b.cast_spell(pl, "sunbeam", sun.pos)
 	if sun.hp > 28 or not sun.has_st("blind"):
 		issue("Sunbeam should burn the undead for 2 by day and blind (hp %d)" % sun.hp)
+	# a freshly loosed rogue summon strikes the wizard's foes first, and only then turns on everyone
+	var b2 := arena(["unbound_fiend"])
+	var w2: Entity = b2.player
+	w2.pos = Vector2i(2, 2)
+	var enemy2 := dummy(b2, Vector2i(6, 6), 1, 40)
+	b2.cast_spell(w2, "unbound_fiend", Vector2i(5, 6))
+	var fiend: Entity = null
+	for u in b2.board.units_of(Battle.PLAYER):
+		if u.kind == Entity.CREATURE:
+			fiend = u
+	if fiend == null:
+		issue("Unbind the Fiend should summon a fiend")
+	else:
+		var wh := w2.hp
+		b2.end_player_phase()
+		if enemy2.hp >= 40:
+			issue("A freshly loosed fiend should hit the foe next to it first")
+		if w2.hp < wh:
+			issue("A freshly loosed fiend should not hit its summoner on its first action")
+		if not fiend.has_st("rampage"):
+			issue("The fiend should still be loose after its first action")
 	print("wave56 tests done")
 
 func test_wave55() -> void:

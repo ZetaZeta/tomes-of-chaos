@@ -420,7 +420,8 @@ static func _roll_chimera(b: Battle, m: Entity) -> void:
 static func _mark_summon(b: Battle, f: Dictionary, m: Entity) -> void:
 	if f.get("rogue", false):
 		b.apply_status(m, "rampage", 99, 1, null)
-		b.msg("%s is loose, and answers to no one!" % m.nm)
+		m.props["fresh_rogue"] = true      # its first action is against the wizard's foes only
+		b.msg("%s is loose! It will strike your foes first, then answer to no one." % m.nm)
 	if f.get("timed", 0) > 0:
 		b.apply_status(m, "bound", f.timed, 1, null)
 	if f.has("st"):

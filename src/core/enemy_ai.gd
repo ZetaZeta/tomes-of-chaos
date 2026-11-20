@@ -13,6 +13,19 @@ const STATUS_VALUE := {
 	"cocoon": 1.0, "unraveling": 1.5, "lured": 2.0, "rebound": 1.5, "missileward": 1.5, "anchored": 0.5, "freemove": 1.0,
 }
 
+## Skill per team: 1 = the original greedy AI, 2 = the improved one (spell timing and value, caster positioning).
+## The balance bot and the enemy side both use it; tests can set a team to 1 to compare.
+static var skill := {0: 2, 1: 2}
+static var dbg := false
+
+const MORE_VALUE := {
+	"hesitant": 2.0, "aversion": 1.5, "forgetful": 2.0, "jostled": 1.0, "prone": 1.5, "gummed": 0.8, "conductive": 1.0,
+	"soaked": 0.8, "parched": 1.2, "unwarded": 1.0, "riposte": 2.0, "overlooked": 1.5, "slick": 0.5, "spurned": 1.0,
+}
+
+static func _v(e: Entity) -> int:
+	return int(skill.get(e.team, 2))
+
 static func take_turn(b: Battle, e: Entity) -> void:
 	if not e.alive or e.acted or b.result != "":
 		return
@@ -41,10 +54,29 @@ static func take_turn(b: Battle, e: Entity) -> void:
 				b.teleport(e, spots[b.rng.randi() % spots.size()])
 				if not e.alive:
 					return
+	var wiz2 := _v(e) >= 2 and e.kind == Entity.WIZARD and not e.has_ab("stationary")
+	if wiz2 and e.moves_left > 0 and not e.has_st("rooted"):
+		_wizard_step(b, e, hostiles)
+		if not e.alive or b.result != "":
+			return
 	if e.has_spellbook():
 		while b.can_cast(e) and b.result == "" and e.alive:
 			if not _try_cast(b, e):
 				break
+	if wiz2:
+		# a wizard stays where it stood: hit whatever is in reach, never wade in
+		hostiles = _hostiles(b, e)
+		var best: Entity = null
+		var bs := -999.0
+		for t in hostiles:
+			if e.alive and e.attacks_left > 0 and b.can_attack(e, t):
+				var sc := _target_score(b, e, t)
+				if sc > bs:
+					bs = sc
+					best = t
+		if best != null:
+			b.attack(e, best)
+		return
 	var guard := 0
 	while e.alive and e.attacks_left > 0 and b.result == "" and guard < 4:
 		guard += 1
@@ -222,7 +254,7 @@ static func _approach(b: Battle, e: Entity, hostiles: Array) -> void:
 	if best != e.pos and bd < cur_d:
 		b.walk(e, b.board.path_from(prev, e.pos, best))
 
-static func _dist_field(b: Battle, e: Entity, goals: Array) -> Dictionary:
+static func _dist_field(b: Battle, e: Entity, goals: Array, risk: bool = false) -> Dictionary:
 	var dist := {}
 	var q: Array = []
 	for g in goals:
@@ -239,11 +271,170 @@ static func _dist_field(b: Battle, e: Entity, goals: Array) -> Dictionary:
 				var n := cur + Vector2i(dx, dy)
 				if dist.has(n) or not b.board.inb(n):
 					continue
-				if not b.board.terrain_walkable(e, n) or b.board.is_dangerous(e, n):
+				if not b.board.terrain_walkable(e, n) or (not risk and b.board.is_dangerous(e, n)):
 					continue
 				dist[n] = dist[cur] + 1
 				q.append(n)
 	return dist
+
+# ================================================================== v2 helpers
+static func _no_effect(en: Entity, dt: String) -> bool:
+	if dt == "holy" and not (en.has_ab("undead") or en.has_ab("fiend") or en.has_ab("vul:holy")):
+		return true
+	if en.has_ab("undead") and dt in ["poison", "necro"]:
+		return true
+	if en.has_ab("construct") and dt in ["poison", "psychic"]:
+		return true
+	return false
+
+static func _foe_power(en: Entity) -> float:
+	var p := float(en.dmg)
+	if en.ranged.size() >= 2:
+		p = maxf(p, float(en.ranged[1]))
+	return p
+
+## How much a control effect is worth on this foe: dangerous foes matter, foes already out of action do not.
+static func _control_scale(en: Entity) -> float:
+	for s_ in ["stunned", "asleep", "frozen", "petrified", "feared", "charmed", "paralyzed"]:
+		if en.has_st(s_):
+			return 0.15
+	if en.has_ab("stationary") and en.ranged.size() < 3:
+		return 0.2
+	return clampf(0.45 + 0.17 * _foe_power(en), 0.45, 2.0)
+
+## How much a defensive or buffing effect is worth to this creature right now: nothing if no enemy is near.
+static func _need_scale(b: Battle, en: Entity) -> float:
+	var near := 0
+	for u in b.board.units():
+		if u.alive and u.team != en.team and u.is_unit() and Board.cheb(u.pos, en.pos) <= 7:
+			near += 1
+	return clampf(0.2 + 0.3 * float(near), 0.2, 1.0)
+
+static func _summon_scale(f: Dictionary) -> float:
+	var m := 1.0
+	if f.get("rogue", false):
+		m *= 0.3
+	if int(f.get("timed", 0)) > 0:
+		m *= 0.6
+	return m
+
+static func _dmg_estimate(b: Battle, caster: Entity, f: Dictionary) -> float:
+	match f.k:
+		"opening":
+			return float(f.n) * 1.5
+		"dmg_allies":
+			var a := 0
+			for u in b.board.units_of(caster.team):
+				if u.alive and u.kind == Entity.CREATURE and u != caster:
+					a += 1
+			return 1.0 + minf(float(a), float(f.cap))
+		"dmg_clutter":
+			return 1.0 + float(mini(int(f.cap), 2))
+		"dmg_jump":
+			return float(f.base) + 1.0
+		"toss":
+			return float(f.impact) * 0.8
+		"lunge":
+			return float(f.n)
+		"seekers":
+			return 3.0
+		"nova":
+			return float(f.n) * 0.6
+		"kindred", "dmg_if_death", "echo_dmg", "detonate":
+			return 2.5
+		"dmg_per_status", "dmg_per_buff", "cascade", "engaged", "overflow":
+			return float(f.get("n", f.get("per", 2))) + 1.0
+		"nonlethal":
+			return float(f.n)
+	return 2.0
+
+## A wizard's own safety: where could foes reach it next turn?
+static func _danger_at(b: Battle, p: Vector2i, hostiles: Array, fields: Dictionary) -> float:
+	var d := 0.0
+	for h in hostiles:
+		if not h.alive or h.dormant or not h.is_unit():
+			continue
+		if h.has_st("stunned") or h.has_st("asleep") or h.has_st("frozen") or h.has_st("petrified") or h.has_st("feared"):
+			continue
+		var power := _foe_power(h) * (0.25 if h.props.get("carrier", false) else 1.0)
+		var mv: int = 0 if (h.has_ab("stationary") or h.has_st("rooted")) else h.move
+		var fld: Dictionary = fields.get(h.uid, {})
+		var wd: int = int(fld.get(p, 999))
+		var reach := 2 if h.has_ab("reach") else 1
+		if wd <= mv + reach:
+			d += power + 1.0
+		elif h.ranged.size() >= 3 and Board.cheb(p, h.pos) <= int(h.ranged[0]) + mv:
+			d += float(h.ranged[1]) + 0.5
+	return d
+
+static func _wizard_step(b: Battle, e: Entity, hostiles: Array) -> void:
+	var fields := {}
+	var near: Array = []
+	for h in hostiles:
+		if h.alive and h.is_unit() and Board.cheb(h.pos, e.pos) <= 12:
+			near.append(h)
+			fields[h.uid] = _dist_field(b, h, [h.pos])
+	var everyone: Array = []
+	for h in hostiles:
+		if h.alive and h.is_unit():
+			everyone.append(h)
+	if everyone.is_empty():
+		return
+	# the player's wizard also has a mission: fetch the book, then get out
+	var goal := Vector2i(-1, -1)
+	if e == b.player and b.objective.get("type") == "retrieve":
+		if not b.book_taken and not b.has_mod("carrier"):
+			goal = b.book_pos
+		elif b.has_mod("escape"):
+			goal = b.exit_pos
+	var aggr: bool = e.spells.is_empty() or b.round_no >= 6
+	var gfield := {}
+	if goal.x >= 0:
+		gfield = _dist_field(b, e, [goal], b.round_no >= 12)
+	var prev := {}
+	var reach := b.board.reach(e, e.moves_left, prev, b.round_no < 12)
+	var best := e.pos
+	var best_s := -999.0
+	for p in reach:
+		var danger := _danger_at(b, p, near, fields)
+		var nd := 99
+		for h in everyone:
+			nd = mini(nd, Board.cheb(p, h.pos))
+		var sc := -danger * 2.2 - absf(float(nd) - 4.0) * 0.35
+		if aggr:
+			# out of spells, or the fight has stalled: go and finish it
+			sc = -danger * 0.3 - float(nd) * 0.8
+		# stay in sight of a target: a wizard that hides where nothing can be hit wastes its turn
+		var seen := false
+		for h in near:
+			if Board.cheb(p, h.pos) <= 6 and b.board.los(p, h.pos):
+				seen = true
+				break
+		if goal.x >= 0:
+			sc += absf(float(nd) - 4.0) * 0.35 * 0.6 - 0.45 * float(gfield.get(p, 40))
+		elif not seen:
+			sc -= 1.2
+		if p == e.pos:
+			sc += 0.25
+		else:
+			sc -= 0.03 * float(reach[p])
+		if sc > best_s:
+			best_s = sc
+			best = p
+	if dbg:
+		print("STEP from ", e.pos, " best ", best, " score ", best_s, " aggr ", aggr, " goal ", goal, " reach ", reach.size(), " every ", everyone.size(), " moves ", e.moves_left)
+	if best != e.pos:
+		b.walk(e, b.board.path_from(prev, e.pos, best))
+
+## Spells are single-use and a wizard casts once a turn, so summons and big plays belong early.
+static func _timing_bonus(b: Battle, caster: Entity, sp: Dictionary) -> float:
+	var bonus := 0.0
+	var early: bool = b.round_no <= 3
+	for f in sp.fx:
+		if f.k in ["summon", "summon_tier"] and early and not f.get("rogue", false):
+			bonus += 1.5
+			break
+	return bonus
 
 # ================================================================== casting
 static func _try_cast(b: Battle, e: Entity) -> bool:
@@ -257,7 +448,7 @@ static func _try_cast(b: Battle, e: Entity) -> bool:
 		seen[sid] = true
 		var sp: Dictionary = DB.spells[sid]
 		for t in SpellEngine.valid_targets(b, e, sp):
-			var s := score_spell(b, e, sp, t) + b.rng.randf() * 0.6
+			var s := score_spell(b, e, sp, t) + b.rng.randf() * (0.3 if _v(e) >= 2 else 0.6)
 			if s > best_s:
 				best_s = s
 				best_id = sid
@@ -268,9 +459,16 @@ static func _try_cast(b: Battle, e: Entity) -> bool:
 
 static func score_spell(b: Battle, caster: Entity, sp: Dictionary, target: Vector2i) -> float:
 	var tiles := SpellEngine.tiles_for(b, caster, sp, target)
+	var total := _score_list(b, caster, sp.fx, tiles, target, sp)
+	if _v(caster) >= 2 and sp.get("lvl", 1) >= 1:
+		total += _timing_bonus(b, caster, sp)
+	return total
+
+static func _score_list(b: Battle, caster: Entity, fxl: Array, tiles: Array, target: Vector2i, sp: Dictionary) -> float:
+	var v2 := _v(caster) >= 2
 	var ctx := {"caster": caster, "team": caster.team}
 	var total := 0.0
-	for f in sp.fx:
+	for f in fxl:
 		var ents := SpellEngine.ents_on(b, tiles, f.k == "dmg" or f.k == "drain")
 		var hit: Array = []
 		for en in ents:
@@ -287,6 +485,12 @@ static func score_spell(b: Battle, caster: Entity, sp: Dictionary, target: Vecto
 						v = 0.2
 					elif en.has_ab("imm:" + f.t):
 						v = 0.0
+					elif v2 and _no_effect(en, f.t):
+						v = 0.0
+					elif v2 and en.has_ab("res:" + f.t):
+						v = maxf(0.0, v - 1.0)
+					elif v2 and en.has_ab("vul:" + f.t):
+						v += 1.0
 					if en.team == caster.team:
 						total -= v * 1.4
 					else:
@@ -301,20 +505,26 @@ static func score_spell(b: Battle, caster: Entity, sp: Dictionary, target: Vecto
 						total += 5.0 + en.hp
 			"st":
 				var bad: bool = DB.STATUS[f.s].get("bad", false)
-				var val: float = STATUS_VALUE.get(f.s, 1.0)
+				var val: float = STATUS_VALUE.get(f.s, MORE_VALUE.get(f.s, (1.5 if bad else 1.2) if v2 else 1.0))
 				for en in hit:
 					if not en.is_unit() or en.has_st(f.s):
 						continue
 					if bad:
 						if en.team == caster.team:
-							total -= val * 1.2
+							total += -val * 1.2
 						else:
-							total += val
+							var vv := val
+							if v2:
+								vv *= _control_scale(en)
+							total += vv
 							if f.s == "silenced" and en.kind != Entity.WIZARD:
-								total -= val
+								total -= vv
 					else:
 						if en.team == caster.team:
-							total += val * (1.0 if en == caster else 0.7)
+							var bv := val * (1.0 if en == caster else 0.7)
+							if v2:
+								bv *= _need_scale(b, en)
+							total += bv
 						else:
 							total -= val
 			"heal":
@@ -330,7 +540,90 @@ static func score_spell(b: Battle, caster: Entity, sp: Dictionary, target: Vecto
 				var md: Dictionary = DB.monsters[f.m]
 				var spots := b.board.free_near(target, 3)
 				var cnt := mini(f.c, spots.size())
-				total += cnt * (md.hp * 0.9 + md.dmg * 2.0 + (1.5 if md.has("rg") else 0.0))
+				var sv: float = cnt * (md.hp * 0.9 + md.dmg * 2.0 + (1.5 if md.has("rg") else 0.0))
+				if v2:
+					sv *= _summon_scale(f)
+				total += sv
+			"summon_tier":
+				if v2:
+					var spots2 := b.board.free_near(target, 3)
+					var cnt2 := mini(int(f.c), spots2.size())
+					var tr: int = int(f.tier)
+					total += cnt2 * (3.0 + 4.0 * tr + 2.0 * (1.0 + tr)) * _summon_scale(f)
+				else:
+					total += 0.3
+			"self_st":
+				if v2 and not caster.has_st(f.s):
+					var bad2: bool = DB.STATUS[f.s].get("bad", false)
+					var val2: float = STATUS_VALUE.get(f.s, MORE_VALUE.get(f.s, 1.2))
+					total += (-val2 if bad2 else val2 * _need_scale(b, caster))
+				else:
+					total += 0.3
+			"wield":
+				if v2:
+					total += 0.0 if caster.props.has("wielding") else 2.5 + 1.2 * float(maxi(f.get("dmg", 1), 0)) * _need_scale(b, caster)
+				else:
+					total += 0.3
+			"shape":
+				if v2:
+					total += 2.5 * _need_scale(b, caster) if not f.get("other", false) and caster.form == "" else 0.8
+				else:
+					total += 0.3
+			"by_tod":
+				if v2:
+					var tl: Array = f.get(b.tod, [])
+					if tl.is_empty():
+						tl = f.default
+					if not tl.is_empty():
+						total += _score_list(b, caster, tl, tiles, target, sp)
+				else:
+					total += 0.3
+			"random":
+				if v2 and not f.opts.is_empty():
+					var acc := 0.0
+					for opt in f.opts:
+						acc += _score_list(b, caster, opt, tiles, target, sp)
+					total += acc / float(f.opts.size())
+				else:
+					total += 0.3
+			"opening", "knell", "dmg_allies", "dmg_clutter", "dmg_jump", "overflow", "nova", "cascade", "engaged", "dmg_per_status", \
+			"dmg_per_buff", "nonlethal", "dmg_lost", "kindred", "dmg_if_death", "echo_dmg", "detonate", "lunge", "toss", "seekers":
+				if v2:
+					var est := _dmg_estimate(b, caster, f)
+					for en in hit:
+						if not en.is_unit() or en.team == caster.team:
+							continue
+						var kv := minf(est, float(en.hp)) + (3.0 if est >= en.hp else 0.0) + (1.5 if en.kind == Entity.WIZARD else 0.0)
+						if f.k == "knell" and en.hp <= int(f.hp):
+							kv = 5.0 + en.hp
+						total += kv
+				else:
+					total += 0.3
+			"ally_strike":
+				if v2:
+					var n_al := 0
+					for u in b.board.units_of(caster.team):
+						if u.alive and u.kind == Entity.CREATURE and u != caster:
+							n_al += 1
+					total += float(f.n if f.n > 0 else 2) * minf(float(n_al), 1.0 if f.get("one", false) else 4.0) * 0.9
+				else:
+					total += 0.3
+			"strip":
+				if v2:
+					for en in hit:
+						if en.is_unit() and en.team != caster.team:
+							for st_name in f.list:
+								if en.has_st(st_name):
+									total += 1.5
+				else:
+					total += 0.3
+			"banish", "disarm", "drop_weapon", "steal_spell", "mimic":
+				if v2:
+					for en in hit:
+						if en.is_unit() and en.team != caster.team:
+							total += 1.5 * _control_scale(en)
+				else:
+					total += 0.3
 			"obj":
 				var od: Dictionary = DB.objs[f.o]
 				# Score by what the object's effects do to each side, not just "has a tick".

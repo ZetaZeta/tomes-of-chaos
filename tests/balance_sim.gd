@@ -14,9 +14,15 @@ func _init() -> void:
 		if kv.size() == 2:
 			args[kv[0]] = kv[1]
 	DB.init()
+	EnemyAI.skill[0] = int(args.get("ai_p", "2"))
+	EnemyAI.skill[1] = int(args.get("ai_e", "2"))
 	var mode: String = args.get("mode", "probe")
 	if mode == "probe":
 		run_probe()
+	elif mode == "mix":
+		run_mix(int(args.get("n", "500")), int(args.get("seed", "1")))
+	elif mode == "mixpaired":
+		run_mix_paired(String(args.get("force", "")).split(","), int(args.get("m", "40")), int(args.get("seed", "1")))
 	elif mode == "paired":
 		run_paired(String(args.get("force", "")).split(","), int(args.get("m", "100")), int(args.get("seed", "1")), int(args.get("per", "2")))
 	else:
@@ -190,7 +196,20 @@ func play(env: String, diff: float, obj: String, bseed: int, load_: Array) -> Di
 		if b.result == "":
 			b.end_player_phase()
 		b.events.clear()
-	return {"win": b.result == "win", "hp": float(maxi(b.player.hp, 0)) / float(maxi(b.player.max_hp, 1))}
+	if b.result == "" and args.get("debug", "") == "1":
+		var names: Array = []
+		for u in b.board.units_of(Battle.ENEMY):
+			names.append("%s@%s hp%d dorm=%s" % [u.nm, u.pos, u.hp, u.dormant])
+		var pv := {}
+		var rc := b.board.reach(b.player, 2, pv, true).size()
+		EnemyAI.dbg = true
+		b.start_turn(b.player) if false else null
+		b.begin_player_phase()
+		for u in b.board.units_of(Battle.PLAYER):
+			EnemyAI.take_turn(b, u)
+		EnemyAI.dbg = false
+		print("STALL reach=", rc, " move=", b.player.move, " st=", b.player.status.keys(), " allies=", b.board.units_of(Battle.PLAYER).size(), " rd=", b.round_no, " ", obj, " player ", b.player.pos, " hp ", b.player.hp, " spells ", b.player.spells.size(), " foes ", names, " book ", b.book_taken)
+	return {"win": b.result == "win", "hp": float(maxi(b.player.hp, 0)) / float(maxi(b.player.max_hp, 1)), "rounds": b.round_no, "cast": b.used_spells.size(), "res": b.result}
 
 func run_paired(force: Array, m: int, seed_: int, per: int) -> void:
 	var rng := RandomNumberGenerator.new()
@@ -245,3 +264,160 @@ func run_paired(force: Array, m: int, seed_: int, per: int) -> void:
 	var f := FileAccess.open("/home/claude/work/out/balance_paired_%d.json" % seed_, FileAccess.WRITE)
 	f.store_string(JSON.stringify(rows))
 	print("PAIRED ", rows.size())
+
+
+# ------------------------------------------------------------------ mixed loadouts by role ratio
+## A wizard's ten spells (two per level) are split into summon / damage / support slots in a fixed ratio.
+## support = everything that is neither a summon nor deals damage (control, buffs, healing, terrain, utility).
+const DAMAGE_KINDS := ["dmg", "drain", "kill", "opening", "knell", "dmg_allies", "dmg_clutter", "dmg_jump", "overflow", "nova",
+	"cascade", "engaged", "dmg_per_status", "dmg_per_buff", "nonlethal", "dmg_lost", "kindred", "dmg_if_death", "echo_dmg",
+	"detonate", "lunge", "toss", "seekers", "ally_strike", "dmg_clutter"]
+const ARCHETYPES := {
+	"summoner": [4, 4, 2], "balanced": [3, 4, 3], "blaster": [2, 6, 2], "controller": [2, 3, 5], "light_summons": [1, 5, 4],
+}
+
+func _role(sp: Dictionary) -> String:
+	if _is_summon_spell(sp):
+		return "summon"
+	for f in sp.fx:
+		if f.k in DAMAGE_KINDS:
+			return "damage"
+		if f.k == "random":
+			for opt in f.opts:
+				for f2 in opt:
+					if f2.k in DAMAGE_KINDS:
+						return "damage"
+	return "support"
+
+func _role_pools() -> Dictionary:
+	var pools := {}
+	for id in DB.spell_order:
+		var l: int = DB.spells[id].lvl
+		if l < 1 or l > 5:
+			continue
+		var key := "%s%d" % [_role(DB.spells[id]), l]
+		if not pools.has(key):
+			pools[key] = []
+		pools[key].append(id)
+	return pools
+
+func _shuffle(a: Array, rng: RandomNumberGenerator) -> void:
+	for z in range(a.size() - 1, 0, -1):
+		var j := rng.randi() % (z + 1)
+		var tmp = a[z]
+		a[z] = a[j]
+		a[j] = tmp
+
+## Returns {"load": [...], "slots": [[role, level], ...]}
+func draw_loadout(arch: String, rng: RandomNumberGenerator, pools: Dictionary, bags: Dictionary, avoid: String = "") -> Dictionary:
+	var ratio: Array = ARCHETYPES[arch]
+	var roles: Array = []
+	for i in range(ratio[0]):
+		roles.append("summon")
+	for i in range(ratio[1]):
+		roles.append("damage")
+	for i in range(ratio[2]):
+		roles.append("support")
+	var levels := [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]
+	_shuffle(roles, rng)
+	var load_: Array = []
+	var slots: Array = []
+	for i in range(10):
+		var key := "%s%d" % [roles[i], levels[i]]
+		if not pools.has(key):
+			key = "damage%d" % levels[i]
+		var pick := ""
+		var tries := 0
+		while pick == "" and tries < 30:
+			tries += 1
+			if not bags.has(key) or bags[key].is_empty():
+				var bag: Array = pools[key].duplicate()
+				_shuffle(bag, rng)
+				bags[key] = bag
+			var cand: String = bags[key].pop_back()
+			if cand != avoid and not load_.has(cand):
+				pick = cand
+		if pick != "":
+			load_.append(pick)
+			slots.append([roles[i], levels[i]])
+	return {"load": load_, "slots": slots}
+
+func run_mix(n: int, seed_: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_
+	var pools := _role_pools()
+	var bags := {}
+	var envs: Array = DB.envs.keys()
+	var objs := ["slay_all", "slay_wizard", "retrieve"]
+	var archs: Array = ARCHETYPES.keys()
+	var rows: Array = []
+	for i in range(n):
+		var arch: String = archs[i % archs.size()]
+		var d := draw_loadout(arch, rng, pools, bags)
+		var diff := rng.randf_range(1.0, 3.5)
+		var env: String = envs[rng.randi() % envs.size()]
+		var obj: String = objs[rng.randi() % objs.size()]
+		var bseed := rng.randi()
+		var r := play(env, diff, obj, bseed, d.load)
+		rows.append({"arch": arch, "win": r.win, "hp": r.hp, "rounds": r.rounds, "cast": r.cast, "res": r.res, "diff": diff, "obj": obj, "load": d.load})
+	var f := FileAccess.open("/home/claude/work/out/balance_mix_%s_%d.json" % [args.get("tag", "x"), seed_], FileAccess.WRITE)
+	f.store_string(JSON.stringify(rows))
+	print("MIXED ", rows.size())
+
+## For each spell: the same battle twice, once with a typical loadout of a random archetype and once with the
+## spell swapped in for another spell of the same role and level (so the test is "better or worse than its peers").
+func run_mix_paired(force: Array, m: int, seed_: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_ * 104729
+	var pools := _role_pools()
+	var envs: Array = DB.envs.keys()
+	var objs := ["slay_all", "slay_wizard", "retrieve"]
+	var archs: Array = ARCHETYPES.keys()
+	var rows: Array = []
+	for id in force:
+		if not DB.spells.has(id):
+			continue
+		var role := _role(DB.spells[id])
+		var lvl: int = DB.spells[id].lvl
+		var wb := 0
+		var ww := 0
+		var hb := 0.0
+		var hw := 0.0
+		var done := 0
+		for j in range(m):
+			# archetypes with at least one slot of this role
+			var arch: String = archs[rng.randi() % archs.size()]
+			var ratio: Array = ARCHETYPES[arch]
+			var ri: int = ["summon", "damage", "support"].find(role)
+			if ratio[ri] == 0:
+				continue
+			var bags := {}
+			var d := draw_loadout(arch, rng, pools, bags, id)
+			var slot := -1
+			for k in range(d.slots.size()):
+				if d.slots[k][0] == role and d.slots[k][1] == lvl and (slot < 0 or rng.randf() < 0.5):
+					slot = k
+			if slot < 0:
+				for k in range(d.slots.size()):
+					if d.slots[k][0] == role and (slot < 0 or rng.randf() < 0.5):
+						slot = k
+			if slot < 0:
+				continue
+			var alt: Array = d.load.duplicate()
+			alt[slot] = id
+			var env: String = envs[rng.randi() % envs.size()]
+			var diff := rng.randf_range(1.0, 3.5)
+			var obj: String = objs[rng.randi() % objs.size()]
+			var bseed := rng.randi()
+			var a := play(env, diff, obj, bseed, d.load)
+			var c := play(env, diff, obj, bseed, alt)
+			wb += 1 if a.win else 0
+			ww += 1 if c.win else 0
+			hb += a.hp
+			hw += c.hp
+			done += 1
+		if done > 0:
+			rows.append({"id": id, "role": role, "m": done, "win_base": wb, "win_with": ww, "hp_base": hb / done, "hp_with": hw / done})
+	var f := FileAccess.open("/home/claude/work/out/balance_mixpaired_%s_%d.json" % [args.get("tag", "x"), seed_], FileAccess.WRITE)
+	f.store_string(JSON.stringify(rows))
+	print("MIXPAIRED ", rows.size())

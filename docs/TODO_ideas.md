@@ -3,12 +3,15 @@
 Raised on 2026-11-18. Each item is to be discussed with the user before work starts. Nothing here is decided.
 
 ## Balance and testing
-- [ ] Improve the balance bot. About 400 of the ~1,000 level 1-5 spells were cast in under 1 in 10 of their simulated battles, so their numbers say little. A bot that saves spells, positions, and sets up combos (summons, walls, control) would give better data.
-- [ ] Abjuration (44.5% win rate) and Divination (45.5%) trail the other schools (47-52%). Check with the paired test, then buff or give them a clearer role.
+- [x] (Done 2026-11-20, see docs/BALANCE.md "Mixed-loadout test") Improve the balance bot. About 400 of the ~1,000 level 1-5 spells were cast in under 1 in 10 of their simulated battles, so their numbers say little. A bot that saves spells, positions, and sets up combos (summons, walls, control) would give better data.
+- [ ] Abjuration and Divination trailed in the old random-loadout sim, but that is expected for support schools and the sim confounded school with summon count. Re-check with the mixed-loadout test (spells compared with peers of the same role and level) before changing anything.
 - [ ] Mounts are new and the bot probably can't use them, so the sim can't say if they are too strong or weak. Watch balance.
 - [ ] Tune the weak level 1-2 control spells.
 - [ ] Remove or replace the plain level 1 "deal 1 damage of type X and nothing else" spells (added 2026-11-18, user request). They are too weak to be useful, frustrating as starting spells, and give a bad first impression. Replacements should be damage plus a secondary effect, and must not overlap existing spells. Probably needs more level 1 spells first, so design a batch of new level 1 spells before removing the old ones. Check which of them are starter spells (`starter` flag, `Game.roll_primer`).
 - [ ] Difficulty curve. Win rate is 64% / 43% / 32% across difficulty bands 1.x / 2.x / 3.x. Decide the win rate wanted at each band.
+
+- [ ] Build specialisation: the game barely rewards going all-in on one school (a handful of spells do), so players just take the best spells. Consider more school-synergy spells (a bonus per spell of the school already cast or known), school mastery perks or books, and other ways to support focused builds, without making them the default. (User, 2026-11-20.)
+- [ ] Mixed-loadout test follow-ups: tune the enemy AI against the difficulty curve now that it is stronger; teach the bot combos (setup then payoff), saving spells for the right target, and mounts.
 
 ## Polish
 - [ ] Clarity of information: damage and kill preview when targeting, a "who threatens this tile" overlay.

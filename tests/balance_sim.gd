@@ -20,7 +20,10 @@ func _init() -> void:
 	if mode == "probe":
 		run_probe()
 	elif mode == "mix":
-		run_mix(int(args.get("n", "500")), int(args.get("seed", "1")))
+		var need: Array = []
+		if args.get("need", "") != "":
+			need = JSON.parse_string(FileAccess.get_file_as_string(args.need))
+		run_mix(int(args.get("n", "500")), int(args.get("seed", "1")), need)
 	elif mode == "mixpaired":
 		run_mix_paired(String(args.get("force", "")).split(","), int(args.get("m", "40")), int(args.get("seed", "1")))
 	elif mode == "paired":
@@ -309,7 +312,7 @@ func _shuffle(a: Array, rng: RandomNumberGenerator) -> void:
 		a[j] = tmp
 
 ## Returns {"load": [...], "slots": [[role, level], ...]}
-func draw_loadout(arch: String, rng: RandomNumberGenerator, pools: Dictionary, bags: Dictionary, avoid: String = "") -> Dictionary:
+func draw_loadout(arch: String, rng: RandomNumberGenerator, pools: Dictionary, bags: Dictionary, avoid: String = "", forced: Array = []) -> Dictionary:
 	var ratio: Array = ARCHETYPES[arch]
 	var roles: Array = []
 	for i in range(ratio[0]):
@@ -322,7 +325,19 @@ func draw_loadout(arch: String, rng: RandomNumberGenerator, pools: Dictionary, b
 	_shuffle(roles, rng)
 	var load_: Array = []
 	var slots: Array = []
+	var forced_at := {}
+	for fid in forced:
+		var fr := _role(DB.spells[fid])
+		var fl: int = DB.spells[fid].lvl
+		for i in range(10):
+			if not forced_at.has(i) and roles[i] == fr and levels[i] == fl:
+				forced_at[i] = fid
+				break
 	for i in range(10):
+		if forced_at.has(i):
+			load_.append(forced_at[i])
+			slots.append([roles[i], levels[i]])
+			continue
 		var key := "%s%d" % [roles[i], levels[i]]
 		if not pools.has(key):
 			key = "damage%d" % levels[i]
@@ -342,7 +357,7 @@ func draw_loadout(arch: String, rng: RandomNumberGenerator, pools: Dictionary, b
 			slots.append([roles[i], levels[i]])
 	return {"load": load_, "slots": slots}
 
-func run_mix(n: int, seed_: int) -> void:
+func run_mix(n: int, seed_: int, need: Array = []) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_
 	var pools := _role_pools()
@@ -353,7 +368,17 @@ func run_mix(n: int, seed_: int) -> void:
 	var rows: Array = []
 	for i in range(n):
 		var arch: String = archs[i % archs.size()]
-		var d := draw_loadout(arch, rng, pools, bags)
+		var forced: Array = []
+		if not need.is_empty():
+			# coverage mode: put up to four under-tested spells (distinct roles/levels) into this loadout
+			var seen := {}
+			for t in range(12):
+				var cand: String = need[rng.randi() % need.size()]
+				var kk := "%s%d" % [_role(DB.spells[cand]), DB.spells[cand].lvl]
+				if forced.size() < 4 and not seen.has(kk) and not forced.has(cand):
+					seen[kk] = true
+					forced.append(cand)
+		var d := draw_loadout(arch, rng, pools, bags, "", forced)
 		var diff := rng.randf_range(1.0, 3.5)
 		var env: String = envs[rng.randi() % envs.size()]
 		var obj: String = objs[rng.randi() % objs.size()]

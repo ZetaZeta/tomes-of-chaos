@@ -17,7 +17,7 @@ static func list() -> Array:
 	L.append(SB.sp("unleash_menagerie", "Open the Menagerie", "chaos", 2, "free", 5, "single", 0, [Fx.summon_tier_rogue(2, 2)], "Two cages burst open. Neither beast is grateful, or choosy."))
 	L.append(SB.sp("release_the_beast", "Release the Beast", "nature", 3, "free", 5, "single", 0, [Fx.summon_rogue("tiger", 1)], "A ravenous tiger, aimed in the general direction of dinner."))
 	L.append(SB.sp("chaos_seed", "Chaos Seed", "chaos", 3, "free", 5, "single", 0, [Fx.summon_rogue("chaos_spawn", 1)], "A spawn that splits when hurt. Everyone's problem."))
-	L.append(SB.sp("pandemonium_gate", "Pandemonium Gate", "chaos", 5, "free", 5, "single", 0, [Fx.summon_tier_rogue(4, 2)], "A door to somewhere much worse. Two big things come through, hungry and unbound."))
+	L.append(SB.sp("pandemonium_gate", "Pandemonium Gate", "chaos", 4, "free", 5, "single", 0, [Fx.summon_tier_rogue(4, 2)], "A door to somewhere much worse. Two big things come through, hungry and unbound."))
 	L.append(SB.sp("unbound_fiend", "Unbind the Fiend", "necromancy", 4, "free", 5, "single", 0, [Fx.summon_rogue("pit_fiend", 1)], "A pit fiend with its leash cut. It will burn the nearest thing, whoever that is."))
 	# ---- transformations of others
 	L.append(SB.ally("lycanthropy", "Lycanthropy", "nature", 3, 4, [Fx.transform("werewolf", 8)], "An ally takes the form of a werewolf for a time."))

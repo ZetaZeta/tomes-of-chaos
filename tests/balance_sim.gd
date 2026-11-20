@@ -277,6 +277,7 @@ const DAMAGE_KINDS := ["dmg", "drain", "kill", "opening", "knell", "dmg_allies",
 	"detonate", "lunge", "toss", "seekers", "ally_strike", "dmg_clutter"]
 const ARCHETYPES := {
 	"summoner": [4, 4, 2], "balanced": [3, 4, 3], "blaster": [2, 6, 2], "controller": [2, 3, 5], "light_summons": [1, 5, 4],
+	"support_heavy": [2, 2, 6], "damage_heavy": [1, 7, 2], "summon_heavy": [6, 3, 1],
 }
 
 func _role(sp: Dictionary) -> String:
@@ -312,7 +313,7 @@ func _shuffle(a: Array, rng: RandomNumberGenerator) -> void:
 		a[j] = tmp
 
 ## Returns {"load": [...], "slots": [[role, level], ...]}
-func draw_loadout(arch: String, rng: RandomNumberGenerator, pools: Dictionary, bags: Dictionary, avoid: String = "", forced: Array = []) -> Dictionary:
+func draw_loadout(arch: String, rng: RandomNumberGenerator, pools: Dictionary, bags: Dictionary, avoid: String = "", forced: Array = [], need_by_key: Dictionary = {}) -> Dictionary:
 	var ratio: Array = ARCHETYPES[arch]
 	var roles: Array = []
 	for i in range(ratio[0]):
@@ -325,19 +326,15 @@ func draw_loadout(arch: String, rng: RandomNumberGenerator, pools: Dictionary, b
 	_shuffle(roles, rng)
 	var load_: Array = []
 	var slots: Array = []
-	var forced_at := {}
-	for fid in forced:
-		var fr := _role(DB.spells[fid])
-		var fl: int = DB.spells[fid].lvl
-		for i in range(10):
-			if not forced_at.has(i) and roles[i] == fr and levels[i] == fl:
-				forced_at[i] = fid
-				break
 	for i in range(10):
-		if forced_at.has(i):
-			load_.append(forced_at[i])
-			slots.append([roles[i], levels[i]])
-			continue
+		var nk := "%s%d" % [roles[i], levels[i]]
+		if forced.size() > 0 and need_by_key.has(nk) and rng.randf() < 0.75:
+			var nl: Array = need_by_key[nk]
+			var np: String = nl[rng.randi() % nl.size()]
+			if np != avoid and not load_.has(np):
+				load_.append(np)
+				slots.append([roles[i], levels[i]])
+				continue
 		var key := "%s%d" % [roles[i], levels[i]]
 		if not pools.has(key):
 			key = "damage%d" % levels[i]
@@ -364,21 +361,36 @@ func run_mix(n: int, seed_: int, need: Array = []) -> void:
 	var bags := {}
 	var envs: Array = DB.envs.keys()
 	var objs := ["slay_all", "slay_wizard", "retrieve"]
-	var archs: Array = ARCHETYPES.keys()
+	var archs: Array = ["summoner", "balanced", "blaster", "controller", "light_summons"]
 	var rows: Array = []
+	var need_by_key := {}
+	var role_need := [0, 0, 0]
+	for nid in need:
+		role_need[["summon", "damage", "support"].find(_role(DB.spells[nid]))] += 1
+	for nid in need:
+		var nkey := "%s%d" % [_role(DB.spells[nid]), DB.spells[nid].lvl]
+		if not need_by_key.has(nkey):
+			need_by_key[nkey] = []
+		need_by_key[nkey].append(nid)
 	for i in range(n):
 		var arch: String = archs[i % archs.size()]
-		var forced: Array = []
 		if not need.is_empty():
-			# coverage mode: put up to four under-tested spells (distinct roles/levels) into this loadout
-			var seen := {}
-			for t in range(12):
-				var cand: String = need[rng.randi() % need.size()]
-				var kk := "%s%d" % [_role(DB.spells[cand]), DB.spells[cand].lvl]
-				if forced.size() < 4 and not seen.has(kk) and not forced.has(cand):
-					seen[kk] = true
-					forced.append(cand)
-		var d := draw_loadout(arch, rng, pools, bags, "", forced)
+			# coverage mode: favour the archetype whose role mix fits the spells that still lack data
+			var wsum := 0.0
+			var ws: Array = []
+			for an in ARCHETYPES.keys():
+				var rt: Array = ARCHETYPES[an]
+				var w := float(rt[0]) * float(role_need[0]) + float(rt[1]) * float(role_need[1]) + float(rt[2]) * float(role_need[2])
+				ws.append([an, w])
+				wsum += w
+			var pick_w := rng.randf() * wsum
+			for pair in ws:
+				pick_w -= pair[1]
+				if pick_w <= 0.0:
+					arch = pair[0]
+					break
+		var forced: Array = need if not need.is_empty() else []
+		var d := draw_loadout(arch, rng, pools, bags, "", forced, need_by_key)
 		var diff := rng.randf_range(1.0, 3.5)
 		var env: String = envs[rng.randi() % envs.size()]
 		var obj: String = objs[rng.randi() % objs.size()]

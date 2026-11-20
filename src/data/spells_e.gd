@@ -5,7 +5,7 @@ extends RefCounted
 static func list() -> Array:
 	var L: Array = []
 	# ================================================================ GEOMANCY
-	L.append(SB.bolt("stone_fist", "Stone Fist", "earth", 1, 4, [Fx.dmg(1, "phys")], "A fist of rock."))
+	L.append(SB.bolt("stone_fist", "Stone Fist", "earth", 1, 4, [Fx.dmg(1, "phys"), Fx.st("prone", 1, 1, "foe")], "A fist of rock that knocks the target flat. Fliers stay up."))
 	L.append(SB.bolt("hurl_boulder", "Hurl Boulder", "earth", 2, 6, [Fx.dmg(1, "phys"), Fx.push(1)], "Heavy and rude."))
 	L.append(SB.sp("stone_pillar", "Stone Pillar", "earth", 1, "free", 5, "single", 0, [Fx.obj("stone_wall")], "Raise a pillar of rock."))
 	L.append(SB.wall("stone_wall_spell", "Wall of Stone", "earth", 3, 5, 5, [Fx.obj("stone_wall")], "A solid wall."))

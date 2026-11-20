@@ -41,7 +41,7 @@ static func register() -> void:
 	m("chaos_mote", "Chaos Mote", "blob", "ff80c0", 5, 3, 1, 2, ["fly"], {"summon": true, "spells": ["wild_surge", "chaos_hop", "coin_toss"]})
 	m("blood_acolyte", "Blood Acolyte", "humanoid", "a01030", 6, 2, 1, 3, [], {"summon": true, "spells": ["bloodletting", "vampiric_bite", "wound_transfer"]})
 	m("rift_scout", "Rift Scout", "imp", "7060d0", 4, 4, 1, 3, ["fly"], {"summon": true, "spells": ["phase_door", "void_grasp", "iron_pull"]})
-	m("apprentice_shade", "Apprentice Shade", "ghost", "8090c0", 7, 3, 1, 4, ["phased"], {"summon": true, "spells": ["magic_missile", "mage_slap", "force_bolt", "arcane_orb"]})
+	m("apprentice_shade", "Apprentice Shade", "ghost", "8090c0", 7, 3, 1, 4, ["phased"], {"summon": true, "spells": ["magic_missile", "mage_slap", "arcane_orb"]})
 	m("stone_shaman", "Stone Shaman", "humanoid", "a09070", 7, 2, 1, 3, [], {"summon": true, "spells": ["stone_fist", "magic_stones", "granite_armor", "hurl_debris"]})
 	m("oracle_eye", "Oracle Eye", "eye", "ffe0a0", 4, 2, 0, 3, ["fly"], {"summon": true, "spells": ["hunters_mark", "clear_sight", "omen"]})
 	m("rat", "Giant Rat", "beast", "8a7060", 1, 3, 1, 1)

@@ -5,7 +5,7 @@ extends RefCounted
 static func list() -> Array:
 	var L: Array = []
 	# ================================================================ EVOCATION
-	L.append(SB.bolt("magic_missile", "Magic Missile", "evocation", 1, 6, [Fx.dmg(1, "force")], "Darts of force that never miss.", {"starter": true}))
+	L.append(SB.bolt("magic_missile", "Magic Missile", "evocation", 1, 6, [Fx.opening(1, "force")], "Darts of force that never miss. Strikes twice as hard at a foe that is still unhurt.", {"starter": true}))
 	L.append(SB.burst("arcane_orb", "Orb of Force", "evocation", 2, 6, 1, [Fx.dmg(1, "force")], "A sphere of force bursts on impact."))
 	L.append(SB.chain("twin_missiles", "Seeking Missiles", "evocation", 2, 6, 1, [Fx.dmg(1, "force", "foe")], "A missile finds a second victim nearby."))
 	L.append(SB.ray("force_lance", "Force Lance", "evocation", 2, 6, [Fx.dmg(1, "force")], "A spear of force skewers everything in a line."))
@@ -21,10 +21,9 @@ static func list() -> Array:
 	L.append(SB.bolt("disintegrate", "Disintegrate", "evocation", 5, 6, [Fx.kill("", 3, 2)], "Reduce a foe to dust. Tough targets are merely scorched."))
 	L.append(SB.burst("arcane_cataclysm", "Arcane Cataclysm", "evocation", 5, 6, 3, [Fx.dmg(1, "force", "foe"), Fx.push(2, "foe", true), Fx.st("stunned", 1, 1, "foe")], "A storm of raw magic that spares your allies.", {"selective": true}))
 	L.append(SB.bolt("mage_slap", "Mage's Rebuke", "evocation", 1, 3, [Fx.dmg(1, "force"), Fx.push(1)], "A sharp blow of force."))
-	L.append(SB.missile("force_bolt", "Eldritch Bolt", "evocation", 1, 5, [Fx.dmg(1, "force")], "Strikes the first thing in its path; no target needed."))
 	# ================================================================ PYROMANCY
 	L.append(SB.cone("burning_hands", "Burning Hands", "pyromancy", 1, 2, [Fx.dmg(1, "fire")], "A fan of flame from your fingertips.", {"starter": true}))
-	L.append(SB.bolt("fire_bolt", "Fire Bolt", "pyromancy", 1, 6, [Fx.dmg(1, "fire")], "A mote of flame streaks out."))
+	L.append(SB.bolt("fire_bolt", "Fire Bolt", "pyromancy", 1, 6, [Fx.dmg(1, "fire"), Fx.obj("fire", 2)], "A mote of flame streaks out and leaves a small fire burning where it lands."))
 	L.append(SB.bolt("scorch", "Scorch", "pyromancy", 2, 5, [Fx.dmg(1, "fire"), Fx.st("burning", 2)], "Sets the target alight."))
 	L.append(SB.bolt("searing_touch", "Searing Touch", "pyromancy", 2, 1, [Fx.dmg(2, "fire")], "Grab hold and burn."))
 	L.append(SB.burst("fireball", "Fireball", "pyromancy", 3, 6, 2, [Fx.dmg(2, "fire"), Fx.st("burning", 2)], "The classic. Mind your friends."))
@@ -42,7 +41,7 @@ static func list() -> Array:
 	L.append(SB.sp("pyre", "Funeral Pyre", "pyromancy", 2, "corpse", 5, "burst", 1, [Fx.obj("fire", 3)], "Burn a corpse and everything near it.", {}))
 	L.append(SB.buff("heat_haze", "Heat Haze", "pyromancy", 2, [Fx.st("mirror", 8, 2), Fx.st("warded", 6)], "Shimmering heat distorts your outline."))
 	# ================================================================ CRYOMANCY
-	L.append(SB.bolt("frost_bolt", "Frost Bolt", "cryomancy", 1, 6, [Fx.dmg(1, "cold")], "A shard of ice."))
+	L.append(SB.bolt("frost_bolt", "Frost Bolt", "cryomancy", 1, 6, [Fx.dmg(1, "cold"), Fx.st("slowed", 1)], "A shard of ice that chills its victim for a turn."))
 	L.append(SB.bolt("ice_dart", "Chilling Dart", "cryomancy", 2, 5, [Fx.dmg(1, "cold"), Fx.st("slowed", 3)], "Numbing cold slows its victim."))
 	L.append(SB.bolt("frostbite", "Frostbite", "cryomancy", 2, 4, [Fx.dmg(1, "cold"), Fx.st("weakened", 3)], "Fingers too numb to fight."))
 	L.append(SB.wall("ice_wall_spell", "Wall of Ice", "cryomancy", 2, 5, 5, [Fx.obj("ice_wall")], "A glittering barrier. Fire melts it."))
@@ -60,7 +59,7 @@ static func list() -> Array:
 	L.append(SB.cone("chill_wind", "Chill Wind", "cryomancy", 2, 3, [Fx.push(2), Fx.st("slowed", 2)], "An icy gale."))
 	L.append(SB.burst("blizzard", "Blizzard", "cryomancy", 4, 6, 2, [Fx.obj("fog", 4), Fx.st("slowed", 3, 1, "foe")], "A whiteout.", {"selective": true}))
 	# ================================================================ STORM
-	L.append(SB.bolt("spark", "Spark", "storm", 1, 5, [Fx.dmg(1, "elec")], "A crackle of electricity."))
+	L.append(SB.chain("spark", "Spark", "storm", 1, 5, 1, [Fx.dmg(1, "elec", "foe"), Fx.st("conductive", 2, 1, "foe")], "A crackle of electricity that hops to one more foe and leaves both conductive for two turns.", {"selective": true}))
 	L.append(SB.bolt("shocking_grasp", "Shocking Grasp", "storm", 2, 1, [Fx.dmg(1, "elec"), Fx.st("stunned", 1)], "Touch and stun."))
 	L.append(SB.ray("lightning_bolt", "Lightning Bolt", "storm", 3, 8, [Fx.dmg(3, "elec")], "A bolt through everything in a line."))
 	L.append(SB.sp("chain_lightning", "Chain Lightning", "storm", 3, "enemy", 6, "chain", 3, [Fx.dmg(2, "elec", "foe")], "Arcs from foe to foe.", {"selective": true}))

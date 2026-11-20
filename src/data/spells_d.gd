@@ -31,7 +31,7 @@ static func list() -> Array:
 	L.append(SB.summon("summon_archon", "Summon Archon", "divine", 5, 4, "archon", 1, "Heaven's warrior."))
 	L.append(SB.ally("guardian_angel", "Guardian Angel", "divine", 4, 5, [Fx.st("deathward", 8), Fx.ward(2)], "An invisible protector."))
 	# ================================================================ ALCHEMY
-	L.append(SB.bolt("acid_splash", "Acid Splash", "alchemy", 1, 5, [Fx.dmg(1, "acid")], "A flask of acid."))
+	L.append(SB.bolt("acid_splash", "Acid Splash", "alchemy", 1, 5, [Fx.dmg(1, "acid"), Fx.strip(["warded", "shielded", "stoneskin", "mirror"], "foe"), Fx.st("unwarded", 2, 1, "foe")], "A flask of acid that eats away protective spells and keeps new ones from taking hold for two turns."))
 	L.append(SB.bolt("acid_arrow", "Acid Arrow", "alchemy", 2, 6, [Fx.dmg(1, "acid"), Fx.st("bleeding", 2)], "It keeps burning."))
 	L.append(SB.bolt("venom_spit", "Venom Flask", "alchemy", 1, 5, [Fx.st("poisoned", 3)], "A vial of toxin."))
 	L.append(SB.bolt("deadly_poison", "Deadly Poison", "alchemy", 3, 5, [Fx.st("poisoned", 5), Fx.st("weakened", 3)], "Wasting sickness."))

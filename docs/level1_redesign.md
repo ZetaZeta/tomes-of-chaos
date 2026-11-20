@@ -46,3 +46,6 @@ Summoner support: **Command Strike** (an ally attacks the target for you).
 1. Replace in place (keep ids and names where possible) or retire some and add new ones?
 2. Which of the new ones to build first.
 3. Should the starter set keep one reliable "just hits" option at level 1 (the three starters Magic Missile, Burning Hands, Sleep)?
+
+## Status: built (wave 56)
+All proposals were built as listed, with these changes agreed with the user: Burning Hands is unchanged; Magic Missile is the reliable "just hits" option with a full-health bonus; Eldritch Bolt retired. Sunbeam became a blinding light because holy damage only affects undead and fiends. See Addendum 33 of the classification report.

@@ -83,6 +83,7 @@ func _init() -> void:
 	test_wave53()
 	test_wave54()
 	test_wave55()
+	test_wave56()
 	test_steadied_cycle()
 	test_book_missions()
 	print("\nAUDIT DONE: %d issues, %d warnings" % [issues, warns])
@@ -4345,7 +4346,7 @@ func test_wave44() -> void:
 		issue("Swelling Prism should swell (hp %d)" % pf.hp)
 
 func test_wave45() -> void:
-	var ids := ["weapon_to_serpent", "coil_of_rebirth", "sand_vortex_form", "relentless_hunter", "chain_resonance", "mercurial_bolt", "mercurial_ward", "unhallowed_ground", "sealed_circle", "fire_bolt", "frost_bolt", "magic_missile"]
+	var ids := ["weapon_to_serpent", "coil_of_rebirth", "sand_vortex_form", "relentless_hunter", "chain_resonance", "mercurial_bolt", "mercurial_ward", "unhallowed_ground", "sealed_circle", "scorch", "frost_bolt", "magic_missile"]
 	var b := arena(ids + ids + ids)
 	var pl: Entity = b.player
 	pl.casts_left = 99
@@ -4388,10 +4389,10 @@ func test_wave45() -> void:
 	tgt.max_hp = 80
 	tgt.ab = []
 	var h1 := tgt.hp
-	b.cast_spell(pl, "fire_bolt", tgt.pos)
+	b.cast_spell(pl, "scorch", tgt.pos)
 	var d1 := h1 - tgt.hp
 	h1 = tgt.hp
-	b.cast_spell(pl, "fire_bolt", tgt.pos)
+	b.cast_spell(pl, "scorch", tgt.pos)
 	var d2 := h1 - tgt.hp
 	h1 = tgt.hp
 	b.cast_spell(pl, "frost_bolt", tgt.pos)
@@ -5233,6 +5234,95 @@ func test_wave54() -> void:
 	if m1.hp != 16:
 		issue("Meteor should do 4 fire damage (hp %d)" % m1.hp)
 	print("wave54 tests done")
+
+func test_wave56() -> void:
+	var ids := ["magic_missile", "fire_bolt", "frost_bolt", "spark", "acid_splash", "stone_fist", "hesitation_hex", "personal_space", "fog_of_forgetting", "shove_of_chaos", "tether_pull", "counterstance", "fade_from_notice", "plant_your_feet", "sticky_coat", "rallying_bolt", "quick_step", "coup_de_grace", "pebble_toss", "sunbeam", "puddle", "greasy_boots", "parch", "command_strike"]
+	var b := arena(ids + ids + ids)
+	var pl: Entity = b.player
+	pl.casts_left = 99
+	pl.pos = Vector2i(3, 5)
+	var foe := dummy(b, Vector2i(6, 5), 1, 30)
+	foe.max_hp = 30
+	b.cast_spell(pl, "magic_missile", foe.pos)
+	if foe.hp != 28:
+		issue("Magic Missile should do 2 to an unhurt target (hp %d)" % foe.hp)
+	b.cast_spell(pl, "magic_missile", foe.pos)
+	if foe.hp != 27:
+		issue("Magic Missile should do 1 to a hurt target (hp %d)" % foe.hp)
+	b.cast_spell(pl, "fire_bolt", foe.pos)
+	if not b.board.objects_at(foe.pos).any(func(o): return o.def_id == "fire"):
+		issue("Fire Bolt should leave flames on the target's tile")
+	b.cast_spell(pl, "frost_bolt", foe.pos)
+	if not foe.has_st("slowed"):
+		issue("Frost Bolt should slow")
+	foe.status.clear()
+	var f2 := dummy(b, Vector2i(6, 6), 1, 30)
+	b.cast_spell(pl, "spark", foe.pos)
+	if not foe.has_st("conductive") or not f2.has_st("conductive") or f2.hp >= 30:
+		issue("Spark should hop to a second foe and leave both conductive")
+	b.apply_status(foe, "stoneskin", 3, 1, null)
+	b.cast_spell(pl, "acid_splash", foe.pos)
+	if foe.has_st("stoneskin") or not foe.has_st("unwarded"):
+		issue("Acid Splash should strip protections and unward")
+	pl.pos = Vector2i(5, 5)
+	foe.status.clear()
+	b.cast_spell(pl, "stone_fist", foe.pos)
+	if not foe.has_st("prone"):
+		issue("Stone Fist should knock prone")
+	pl.pos = Vector2i(3, 5)
+	foe.status.clear()
+	for sid in [["hesitation_hex", "hesitant"], ["personal_space", "aversion"], ["fog_of_forgetting", "forgetful"], ["shove_of_chaos", "jostled"], ["parch", "parched"]]:
+		foe.status.clear()
+		if not b.cast_spell(pl, sid[0], foe.pos):
+			issue("cast refused: " + sid[0])
+		if not foe.has_st(sid[1]):
+			issue("%s should apply %s" % [sid[0], sid[1]])
+	foe.pos = Vector2i(7, 5)
+	b.cast_spell(pl, "tether_pull", foe.pos)
+	if Board.cheb(pl.pos, foe.pos) > 4 or foe.pos == Vector2i(7, 5):
+		issue("Tether Pull should drag the foe closer (at %s)" % foe.pos)
+	for sid in [["counterstance", "riposte"], ["fade_from_notice", "overlooked"], ["plant_your_feet", "anchored"], ["greasy_boots", "slick"]]:
+		if not b.cast_spell(pl, sid[0], pl.pos):
+			issue("cast refused: " + sid[0])
+		if not pl.has_st(sid[1]):
+			issue("%s should apply %s" % [sid[0], sid[1]])
+	pl.status.clear()
+	var ally := dummy(b, Vector2i(2, 5), 0, 10)
+	b.cast_spell(pl, "sticky_coat", ally.pos)
+	if not ally.has_st("gummed"):
+		issue("Sticky Coat should gum the ally")
+	foe.pos = Vector2i(6, 5)
+	foe.hp = 30
+	var h := foe.hp
+	b.cast_spell(pl, "rallying_bolt", foe.pos)
+	if h - foe.hp != 2:
+		issue("Rallying Bolt should do 1 + 1 per ally (did %d)" % (h - foe.hp))
+	foe.hp = 1
+	b.cast_spell(pl, "coup_de_grace", foe.pos)
+	if foe.alive:
+		issue("Coup de Grace should finish a 1 HP creature")
+	var f3 := dummy(b, Vector2i(6, 7), 1, 30)
+	pl.pos = Vector2i(3, 5)
+	b.cast_spell(pl, "quick_step", f3.pos)
+	if Board.cheb(pl.pos, f3.pos) != 1 or f3.hp >= 30:
+		issue("Quick Step should land beside and hit (dist %d hp %d)" % [Board.cheb(pl.pos, f3.pos), f3.hp])
+	f3.hp = 30
+	pl.pos = Vector2i(3, 5)
+	b.board.terr.fill("floor")
+	b.cast_spell(pl, "puddle", Vector2i(3, 6))
+	if b.board.terrain(Vector2i(3, 6)) != "shallow":
+		issue("Puddle should make shallow water")
+	var h3 := f3.hp
+	b.cast_spell(pl, "command_strike", pl.pos)
+	if f3.hp >= h3 and ally.alive:
+		pass
+	var sun := dummy(b, Vector2i(6, 7), 1, 30)
+	sun.ab = ["undead"]
+	b.tod = "day"
+	b.cast_spell(pl, "sunbeam", sun.pos)
+	if sun.hp > 28 or not sun.has_st("blind"):
+		issue("Sunbeam should burn the undead for 2 by day and blind (hp %d)" % sun.hp)
+	print("wave56 tests done")
 
 func test_wave55() -> void:
 	var b := arena(["reckless_charge", "prevent_benefice", "restful_lullaby", "correct_hurts", "correct_hurts", "squared_triangle", "magic_missile", "magic_missile", "magic_missile", "magic_missile", "magic_missile"])

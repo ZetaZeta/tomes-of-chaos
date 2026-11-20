@@ -289,8 +289,8 @@ static func unlife() -> Dictionary:
 	return {"k": "unlife"}
 
 ## Each of your allied creatures strikes a random foe: in melee range (their own damage +1) or at range. Optional stun and self-heal.
-static func ally_strike(n: int = 2, t: String = "necro", rng: int = 5, stun: int = 0, melee: bool = false, heal: bool = false) -> Dictionary:
-	return {"k": "ally_strike", "n": n, "t": t, "rng": rng, "stun": stun, "melee": melee, "heal": heal}
+static func ally_strike(n: int = 2, t: String = "necro", rng: int = 5, stun: int = 0, melee: bool = false, heal: bool = false, one: bool = false) -> Dictionary:
+	return {"k": "ally_strike", "n": n, "t": t, "rng": rng, "stun": stun, "melee": melee, "heal": heal, "one": one}
 
 ## Destroy walls and solid objects in the area.
 static func breach() -> Dictionary:

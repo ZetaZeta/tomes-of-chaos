@@ -432,7 +432,7 @@ static func cast(b: Battle, caster: Entity, sp: Dictionary, target: Vector2i, pi
 	var bonus := 0
 	var has_dmg := false
 	for f0 in sp.fx:
-		if f0.k == "dmg" or f0.k == "drain":
+		if f0.k == "dmg" or f0.k == "drain" or f0.k == "opening":
 			has_dmg = true
 	if has_dmg:
 		if caster.has_st("devastate"):
@@ -1191,9 +1191,13 @@ static func _apply_one(b: Battle, ctx: Dictionary, f: Dictionary, tiles: Array, 
 					b.msg("%s is cursed with unlife!" % e.nm)
 		"ally_strike":
 			if caster != null:
+				var strikers: Array = []
 				for a in b.board.units():
-					if not a.alive or a.kind != Entity.CREATURE or a.team != caster.team or a == caster:
-						continue
+					if a.alive and a.kind == Entity.CREATURE and a.team == caster.team and a != caster:
+						strikers.append(a)
+				if f.get("one", false) and not strikers.is_empty():
+					strikers = [strikers[b.rng.randi() % strikers.size()]]
+				for a in strikers:
 					var foes: Array = []
 					for u in b.board.units():
 						if u.alive and u.team != caster.team and u.is_unit() and Board.cheb(u.pos, a.pos) <= (1 if f.melee else f.rng):

@@ -337,7 +337,7 @@ func _apply_mod(m: Dictionary, n: int) -> int:
 
 func _spell_hurts(sp: Dictionary) -> bool:
 	for f in sp.fx:
-		if str(f.k).begins_with("dmg"):
+		if str(f.k).begins_with("dmg") or f.k == "opening":
 			return true
 	return false
 

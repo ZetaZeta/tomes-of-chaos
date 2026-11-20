@@ -118,3 +118,18 @@ Median damage roughly doubles from level to level (1, 3, 4, 6, 12), which is a s
 
 ## Follow-up: damage buff and Flesh to Stone
 After the first report, 21 mid- and high-level direct-damage spells were raised by 1 to 2 points (listed in Addendum 25b of the classification report), Flesh to Stone became a level-5 kill on fleshy creatures, and Calcify (level 3) took over temporary petrification. A second 3,900-battle run put the overall bot win rate at 52.7% (from 48.8%) and the buffed spells at 60.9% (from 56.7%); no damage spell became an outlier.
+
+
+## Mixed-loadout test (2026-11-20)
+
+The old sim drew ten random spells (two per level) and counted battles that contained a spell of each school. That mixed school with how many summons the school has, and it never tested specialist or support-heavy builds fairly.
+
+**Method.** `tests/balance_sim.gd mode=mix` builds a ten-spell loadout (two per level) split into summon / damage / support slots by archetype: summoner 4/4/2, balanced 3/4/3, blaster 2/6/2, controller 2/3/5, light summons 1/5/4. Coverage runs (`need=<file>`) add support-heavy 2/2/6, damage-heavy 1/7/2 and summon-heavy 6/3/1 and fill slots with spells that still lack data. A spell's score is its win rate minus the expected win rate of the same archetype, difficulty band and objective. `tools/balance_mix_report.py` prints tables; `mode=mixpaired` swaps a spell for a same-role, same-level peer in the same battle. Spells are single-use and one is cast per turn, so slots are scarce.
+
+**AI v2** (`src/core/enemy_ai.gd`, `EnemyAI.skill` per team; 1 = old). Wizards stay out of melee reach but within spell range, fetch the book in retrieve missions, and advance when out of spells or after round 6. Spell scoring now handles buffs (only when enemies are near), control (by target threat), immunities (holy vs living, poison vs undead), summons early, rogue summons (placed among foes, away from allies), and many previously unscored effects. Result, 400 battles each: old/old 62%, new player AI vs old enemy 81%, old player vs new enemy 63%, new/new 78%. The enemy AI change is small (about 3 points).
+
+**Results** (20,000 battles, every spell 47+ uses): see the spreadsheet "AI Comparison Results". Strongest: Call the Warhost (+18), Spirit Legion, Elemental Prince, Grand Menagerie, Phantom Brigade, Stampede of Aurochs. Weakest: Unbind the Fiend, Open the Menagerie, Growing Clay Servant, Fire Gate, Conjure the Elemental Id, Reciprocal Gyre, Divine Justice, Resonant Backlash. 150-pair swaps confirmed Call the Warhost (+19), Growing Clay Servant (-16), Reciprocal Gyre (-13); Divine Justice, Call Chaos and Phase Lance were within noise. 40-pair swaps are too noisy to use (about 20 points of error).
+
+**Pandemonium Gate** was 38 points below its peers, mostly because the AI released rogue summons beside its own wizard. After the placement fix it is about 8 below (60 pairs). Moved from level 5 to level 4, tier 4 summons kept.
+
+**Still to do:** decide what to do with the weak and strong outliers above (balance changes not yet made); more specialisation support (see TODO); teach the bot combos and mounts.

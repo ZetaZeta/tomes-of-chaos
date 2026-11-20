@@ -318,6 +318,25 @@ static func _summon_scale(f: Dictionary) -> float:
 		m *= 0.6
 	return m
 
+## A loose summon attacks whatever is nearest, so it is only worth releasing among the enemy and well away from us.
+static func _rogue_place(b: Battle, caster: Entity, target: Vector2i, f: Dictionary) -> float:
+	if not f.get("rogue", false):
+		return 1.0
+	var friends := 0
+	var foes := 0
+	for u in b.board.units():
+		if not u.alive or not u.is_unit():
+			continue
+		var d := Board.cheb(u.pos, target)
+		if u.team == caster.team and d <= 3:
+			friends += 1
+		elif u.team != caster.team and d <= 4:
+			foes += 1
+	var m := maxf(0.05, 1.0 - 0.35 * float(friends)) * (1.0 + 0.4 * minf(float(foes), 3.0))
+	if Board.cheb(caster.pos, target) < 5:
+		m *= 0.2
+	return m
+
 static func _dmg_estimate(b: Battle, caster: Entity, f: Dictionary) -> float:
 	match f.k:
 		"opening":
@@ -542,14 +561,14 @@ static func _score_list(b: Battle, caster: Entity, fxl: Array, tiles: Array, tar
 				var cnt := mini(f.c, spots.size())
 				var sv: float = cnt * (md.hp * 0.9 + md.dmg * 2.0 + (1.5 if md.has("rg") else 0.0))
 				if v2:
-					sv *= _summon_scale(f)
+					sv *= _summon_scale(f) * _rogue_place(b, caster, target, f)
 				total += sv
 			"summon_tier":
 				if v2:
 					var spots2 := b.board.free_near(target, 3)
 					var cnt2 := mini(int(f.c), spots2.size())
 					var tr: int = int(f.tier)
-					total += cnt2 * (3.0 + 4.0 * tr + 2.0 * (1.0 + tr)) * _summon_scale(f)
+					total += cnt2 * (3.0 + 4.0 * tr + 2.0 * (1.0 + tr)) * _summon_scale(f) * _rogue_place(b, caster, target, f)
 				else:
 					total += 0.3
 			"self_st":

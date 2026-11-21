@@ -3463,3 +3463,8 @@ Built from `docs/level1_redesign.md`. **Reworked in place:** Magic Missile (1 fo
 ### Addendum 34: Pandemonium Gate streams creatures (wave 57)
 
 Pandemonium Gate is now an object-based spell: `Fx.obj("pande_gate", 5)` creates a gate that, each turn for five turns, summons one random tier 4 creature that is rogue (fresh-rogue first strike on foes, then rampage). Engine change: `summon_tier` called from an object cycle (no caster) acts for the wizard on the object's team. Balance at 150 pairs: about 0 against peers.
+
+
+### Addendum 35: radiant damage (wave 57)
+
+New damage type `radiant` (DB.DTYPES): full damage to everything, +1 against undead and fiends; celestials are immune. Converted Angel, Archon, Celestial Hound, Avatar of War and Gold Dragon breath from holy, plus Smite Evil, Divine Justice, Sunburst, Dawn's Call and Sunlit Strikes. Holy is kept for spells that are meant to be niche.

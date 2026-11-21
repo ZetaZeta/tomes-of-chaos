@@ -135,3 +135,5 @@ The old sim drew ten random spells (two per level) and counted battles that cont
 **Pandemonium Gate, streaming version.** An instant two-creature cast still scored about -17 at level 3, so it became a gate object (`pande_gate`) that releases one rogue tier 4 creature per turn (each strikes foes first). Object cycles can now summon for their team's wizard (`summon_tier` falls back to the wizard on `ctx.team`). 150-pair swaps against a level and role peer: life 4 scored -9 points (112 vs 125 wins), life 5 scored about 0 (114 vs 113). Shipped at level 4, life 5.
 
 **Still to do:** decide what to do with the weak and strong outliers above (balance changes not yet made); more specialisation support (see TODO); teach the bot combos and mounts.
+
+**Summon-count trim (Spirit Legion 4→3, Call the Warhost 7→6).** 150-pair swaps against a level and role peer, after the cut: Spirit Legion 135 vs 108 wins (+18 points), Call the Warhost 145 vs 118 (+18 points). Both are still clearly stronger than their peers, so a further cut (HP or count) is the next lever.

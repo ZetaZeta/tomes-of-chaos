@@ -3458,3 +3458,8 @@ Source: the user's Academagia wiki dump (academagia-info.zip, 2,413 pages: 369 s
 ### Addendum 33: level 1 redesign (wave 56)
 
 Built from `docs/level1_redesign.md`. **Reworked in place:** Magic Missile (1 force, doubled against an unhurt target; new `opening` now counts for gamble/resonance/piercing), Fire Bolt (+ a small fire on the target's tile), Frost Bolt (+ Slowed 1), Spark (now chains to one more foe and leaves both Conductive), Acid Splash (strips Warded/Shielded/Stoneskin/Mirror, Unwarded 2), Stone Fist (+ Prone). **Retired:** Eldritch Bolt (force_bolt; Apprentice Shade no longer casts it). **Unchanged:** Burning Hands. **Added (18, level 1):** Hesitation Hex, Personal Space, Fog of Forgetting, Shove of Chaos, Tether Pull, Counterstance, Fade from Notice, Plant Your Feet, Sticky Coat, Rallying Bolt, Quick Step, Coup de Grace, Pebble Toss, Sunbeam (blind; burns undead/fiends, since holy only harms them), Puddle, Greasy Boots, Parch, Command Strike (`ally_strike` gained a `one` option). 1,196 spells total. Each new spell is a short, weaker cousin of an existing level 2+ mechanic.
+
+
+### Addendum 34: Pandemonium Gate streams creatures (wave 57)
+
+Pandemonium Gate is now an object-based spell: `Fx.obj("pande_gate", 5)` creates a gate that, each turn for five turns, summons one random tier 4 creature that is rogue (fresh-rogue first strike on foes, then rampage). Engine change: `summon_tier` called from an object cycle (no caster) acts for the wizard on the object's team. Balance at 150 pairs: about 0 against peers.

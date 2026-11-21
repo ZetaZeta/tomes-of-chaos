@@ -132,4 +132,6 @@ The old sim drew ten random spells (two per level) and counted battles that cont
 
 **Pandemonium Gate** was 38 points below its peers, mostly because the AI released rogue summons beside its own wizard. After the placement fix it is about 8 below (60 pairs). Moved from level 5 to level 4, tier 4 summons kept.
 
+**Pandemonium Gate, streaming version.** An instant two-creature cast still scored about -17 at level 3, so it became a gate object (`pande_gate`) that releases one rogue tier 4 creature per turn (each strikes foes first). Object cycles can now summon for their team's wizard (`summon_tier` falls back to the wizard on `ctx.team`). 150-pair swaps against a level and role peer: life 4 scored -9 points (112 vs 125 wins), life 5 scored about 0 (114 vs 113). Shipped at level 4, life 5.
+
 **Still to do:** decide what to do with the weak and strong outliers above (balance changes not yet made); more specialisation support (see TODO); teach the bot combos and mounts.

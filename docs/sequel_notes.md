@@ -237,3 +237,5 @@ Only five tactical spells came out of it (see Addendum 32 of the classification 
 Where the data lives: /home/claude/work/src26/academagia-info (2,413 html pages, 140 MB zip) with extracted text in spells.json and digest.json in /home/claude/work/src26.
 
 **[D] Level 1 as a teaching tier (wave 56).** Every level 1 attack now carries a secondary effect, and 18 small control, defence and combo spells exist at level 1 (Hesitant, Aversion, Forgetful, Jostled, Riposte, Overlooked, Anchored, Gummed, Slick, Parched, Soaked, Prone). The sequel can reuse this pattern: introduce each status as a weak level 1 spell, then scale it up at higher levels.
+
+- **Gate objects that summon (from the tactics game):** an object with a cycle can release creatures for its owner each turn (Pandemonium Gate: one rogue tier 4 creature a turn for five turns). Streaming a payoff over several turns balanced a drawback-heavy spell far better than an instant burst; reuse for overworld "portals" or ongoing summoning sites.

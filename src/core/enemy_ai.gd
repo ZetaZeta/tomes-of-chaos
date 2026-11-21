@@ -3,8 +3,8 @@ extends RefCounted
 ## Decision making for everything on the enemy side.
 
 const STATUS_VALUE := {
-	"burning": 2.0, "poisoned": 2.0, "bleeding": 1.5, "slowed": 1.5, "rooted": 2.0, "stunned": 3.0,
-	"frozen": 3.0, "petrified": 3.5, "gaseous": 2.0, "asleep": 3.5, "blind": 1.5, "silenced": 0.5, "confused": 2.0, "feared": 2.5,
+	"burning": 2.0, "poisoned": 2.0, "bleeding": 1.5, "slowed": 1.5, "rooted": 2.0, "stunned": 3.0, "deferred": 2.5,
+	"frozen": 3.0, "petrified": 3.5, "gaseous": 2.0, "asleep": 3.5, "blind": 2.2, "silenced": 0.5, "confused": 2.0, "feared": 2.5,
 	"charmed": 5.0, "marked": 2.0, "doomed": 6.0, "weakened": 2.5, "cursed": 0.5, "glowing": 0.3,
 	# beneficial
 	"hasted": 3.0, "shielded": 3.0, "mirror": 3.0, "stoneskin": 2.0, "warded": 2.0, "invisible": 2.0,
@@ -806,7 +806,21 @@ static func _score_list(b: Battle, caster: Entity, fxl: Array, tiles: Array, tar
 						total += 1.0
 			"wild":
 				total += 1.6
-			"terr", "reveal", "ignite", "shatter", "wake", "raise", "blink", "swap", "shuffle", "extra_cast", "extra_move", "restore":
+			"raise":
+				if v2:
+					var rad: int = int(f.get("rad", 0))
+					var rv := 0.0
+					var cnt_r := 0
+					for cp in b.board.corpses.keys():
+						if (rad > 0 and Board.cheb(cp, target) <= rad) or (rad == 0 and cp == target):
+							if b.board.is_free(cp) and cnt_r < 4:
+								cnt_r += 1
+								var rm: Dictionary = DB.monsters.get(b.board.corpses[cp].back(), {})
+								rv += 1.0 + 0.7 * float(rm.get("hp", 2)) + 1.2 * float(rm.get("dmg", 1))
+					total += rv * (0.6 if int(f.get("timed", 0)) > 0 else 0.9)
+				else:
+					total += 0.2
+			"terr", "reveal", "ignite", "shatter", "wake", "blink", "swap", "shuffle", "extra_cast", "extra_move", "restore":
 				total += 0.2
 			_:
 				total += 0.3

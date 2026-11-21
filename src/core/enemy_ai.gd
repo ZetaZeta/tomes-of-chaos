@@ -548,6 +548,13 @@ static func _wizard_step(b: Battle, e: Entity, hostiles: Array) -> void:
 	var reach := b.board.reach(e, e.moves_left, prev, b.round_no < 12)
 	var best := e.pos
 	var best_s := -999.0
+	# touch and short-range spells: a wizard has to stand where they can be cast, so judge each tile by what it could cast from there
+	var shorts: Array = []
+	if not aggr and b.can_cast(e):
+		for sid in e.spells:
+			var ssp: Dictionary = DB.spells[sid]
+			if ssp.rng >= 0 and ssp.rng <= 3 and ssp.tgt != "self" and not shorts.has(sid):
+				shorts.append(sid)
 	for p in reach:
 		var danger := _danger_at(b, p, near, fields)
 		var nd := 99
@@ -567,6 +574,16 @@ static func _wizard_step(b: Battle, e: Entity, hostiles: Array) -> void:
 			sc += absf(float(nd) - 4.0) * 0.35 * 0.6 - 0.45 * float(gfield.get(p, 40))
 		elif not seen:
 			sc -= 1.2
+		if not shorts.is_empty() and nd <= 4:
+			var keep := e.pos
+			e.pos = p
+			var bs_short := 0.0
+			for sid in shorts:
+				var ssp2: Dictionary = DB.spells[sid]
+				for t in SpellEngine.valid_targets(b, e, ssp2):
+					bs_short = maxf(bs_short, score_spell(b, e, ssp2, t))
+			e.pos = keep
+			sc += minf(bs_short, 8.0) * 0.45
 		if p == e.pos:
 			sc += 0.25
 		else:
@@ -774,7 +791,9 @@ static func _score_list(b: Battle, caster: Entity, fxl: Array, tiles: Array, tar
 				else:
 					total += 0.3
 			"banish", "disarm", "drop_weapon", "steal_spell", "mimic":
-				if v2:
+				if v2 and f.k in ["banish", "steal_spell", "mimic"]:
+					total += _score_special(b, caster, f, hit, tiles, target, sp)
+				elif v2:
 					for en in hit:
 						if en.is_unit() and en.team != caster.team:
 							total += 1.5 * _control_scale(en)
@@ -783,9 +802,12 @@ static func _score_list(b: Battle, caster: Entity, fxl: Array, tiles: Array, tar
 			"obj":
 				total += _score_obj(b, caster, f, ents, v2, target)
 			"push", "yank":
-				for en in hit:
-					if en.is_unit():
-						total += 0.8 if en.team != caster.team else -0.8
+				if v2 and f.k == "yank":
+					total += _score_special(b, caster, f, hit, tiles, target, sp)
+				else:
+					for en in hit:
+						if en.is_unit():
+							total += 0.8 if en.team != caster.team else -0.8
 			"cleanse":
 				for en in hit:
 					if en.team == caster.team and en.is_unit():
@@ -801,9 +823,12 @@ static func _score_list(b: Battle, caster: Entity, fxl: Array, tiles: Array, tar
 					if en.is_unit() and en.team != caster.team and en.hp >= 3:
 						total += 1.5
 			"clone", "steal", "set_hp", "lose_spells", "dispel", "tele":
-				for en in hit:
-					if en.is_unit() and en.team != caster.team:
-						total += 1.0
+				if v2 and f.k in ["set_hp", "lose_spells", "tele"]:
+					total += _score_special(b, caster, f, hit, tiles, target, sp)
+				else:
+					for en in hit:
+						if en.is_unit() and en.team != caster.team:
+							total += 1.0
 			"wild":
 				total += 1.6
 			"raise":
@@ -820,8 +845,166 @@ static func _score_list(b: Battle, caster: Entity, fxl: Array, tiles: Array, tar
 					total += rv * (0.6 if int(f.get("timed", 0)) > 0 else 0.9)
 				else:
 					total += 0.2
-			"terr", "reveal", "ignite", "shatter", "wake", "blink", "swap", "shuffle", "extra_cast", "extra_move", "restore":
-				total += 0.2
 			_:
-				total += 0.3
+				if v2:
+					total += _score_special(b, caster, f, hit, tiles, target, sp)
+				elif f.k in ["terr", "reveal", "ignite", "shatter", "wake", "blink", "swap", "shuffle", "extra_cast", "extra_move", "restore"]:
+					total += 0.2
+				else:
+					total += 0.3
 	return total
+
+# ---- the long tail of odd effects: each judged by what it does for the caster's side right now ----
+
+## How dangerous a tile is for the caster: foes close by, weighted by how hard they hit.
+static func _threat_at(b: Battle, caster: Entity, p: Vector2i) -> float:
+	var th := 0.0
+	for u in b.board.units():
+		if u.alive and u.is_unit() and u.team != caster.team:
+			var d := Board.cheb(u.pos, p)
+			if d <= 6:
+				th += _foe_power(u) * (1.0 if d <= 1 else (0.7 if d <= 3 else 0.3))
+	return th
+
+static func _unused_spells(b: Battle, caster: Entity) -> int:
+	return caster.spells.size()        # spells leave the list when cast
+
+static func _score_special(b: Battle, caster: Entity, f: Dictionary, hit: Array, tiles: Array, target: Vector2i, sp: Dictionary) -> float:
+	var foes: Array = []
+	var allies: Array = []
+	for en in hit:
+		if not en.is_unit():
+			continue
+		if en.team != caster.team:
+			foes.append(en)
+		else:
+			allies.append(en)
+	var nd := _need_scale(b, caster)
+	var unused := _unused_spells(b, caster)
+	var k: String = f.k
+	match k:
+		# --- tempo and resources: only worth something if there is something left to cast
+		"extra_cast", "bank_casts":
+			return float(f.get("n", 1)) * 1.3 * (1.0 if unused >= 2 else 0.2)
+		"extra_move", "ally_step":
+			return 0.8 * nd + (1.2 if b.round_no >= 5 else 0.0)
+		"restore":
+			var rc := 0
+			for i in range(b.used_spells.size()):
+				var rs: Dictionary = DB.spells[b.used_spells[i]]
+				if f.has("school") and rs.school != f.school:
+					continue
+				if rs.lvl > f.get("max", 99) or rs.lvl < f.get("min", 0):
+					continue
+				rc += 1
+			return minf(float(rc), float(f.get("n", 1))) * (1.2 + 0.25 * float(rc > 0 and b.round_no >= 4))
+		"grant":
+			return float(f.get("n", 1)) * 1.6 if b.round_no <= 9 else 0.8
+		"extend", "permanent":
+			var gs := 0
+			for st in caster.status.keys():
+				if not DB.STATUS[st].get("bad", false) and caster.status[st].t < 90:
+					gs += 1
+			return 0.9 * float(mini(gs, 3))
+		"enchant":
+			return 1.8 * nd + 0.4
+		"drain_casts", "lose_spells", "expend", "steal_spell", "tax":
+			var wv := 0.0
+			for en in foes:
+				if en.kind == Entity.WIZARD and en.has_spellbook():
+					wv += 3.0
+				elif k == "tax":
+					wv += 1.2
+			return wv
+		# --- moving yourself
+		"blink", "gate", "dash", "relay", "step_to_target", "portals":
+			var gain := _threat_at(b, caster, caster.pos) - _threat_at(b, caster, target)
+			if b.round_no >= 6 or caster.spells.is_empty():
+				gain += 0.35 * float(Board.cheb(caster.pos, target)) if k != "portals" else 0.0
+			return clampf(gain, -3.0, 5.0) + 0.3
+		"shuffle", "swap", "rewind":
+			return clampf(_threat_at(b, caster, caster.pos) * 0.5, 0.2, 3.0)
+		"tele", "banish", "toss", "yank", "hurl":
+			var tv := 0.0
+			for en in foes:
+				tv += 0.7 + 0.5 * _foe_power(en) * (1.0 if Board.cheb(en.pos, caster.pos) <= 3 else 0.5)
+			for en in allies:
+				tv -= 1.5
+			return tv
+		# --- hard control of single foes
+		"set_hp", "dump", "thresh_kill", "trap_soul", "halve", "sap_max", "swap_hp", "burst_creature", "calcify", "unlife":
+			var hv := 0.0
+			for en in foes:
+				if en.has_ab("boss"):
+					continue
+				match k:
+					"set_hp":
+						hv += maxf(0.0, float(mini(en.hp, 12) - int(f.n))) * 1.0 + (2.0 if en.hp > int(f.n) else 0.0)
+					"dump":
+						hv += minf(float(en.hp), float(f.get("max", 4))) * 0.9
+					"trap_soul":
+						hv += (5.0 + en.hp) if en.hp <= int(f.get("hp_max", 3)) else 1.0
+					"thresh_kill":
+						hv += (5.0 + en.hp) if en.hp <= int(f.get("hp", 4)) else 1.2
+					"swap_hp":
+						hv += maxf(0.0, float(mini(en.hp, 12) - caster.hp)) * 0.8
+					"burst_creature":
+						hv += 2.0 + 0.5 * float(en.hp)
+					_:
+						hv += 1.6
+			return hv
+		"possess", "puppet", "mutiny", "leash", "goad", "hunter", "haunt", "thief", "provoke", "copy_boon", "turn_weapon", "swap_stats", "bind", "mutate", "swap_bodies", "borrow":
+			var cv := 0.0
+			for en in foes:
+				cv += (2.4 if k in ["possess", "puppet", "mutiny"] else 1.5) * _control_scale(en) * 1.2
+			if k == "provoke":
+				cv = 1.2 if not foes.is_empty() else 0.3
+			if k in ["mutate", "borrow", "swap_bodies"]:
+				cv = 1.0 if not (foes.is_empty() and allies.is_empty()) else 0.3
+			return cv
+		# --- helping allies
+		"loan", "thp", "pledge", "transfer", "heal_over", "recall", "undo", "ride", "max_hp", "fuse":
+			var av := 0.0
+			for en in allies:
+				av += (0.6 + 0.9 * _need_scale(b, en)) * (1.0 if en != caster else 0.8)
+			return av
+		# --- making new bodies
+		"animate", "conjure_mount", "raise_from", "chimera", "copy_creature", "free_soul", "seekers", "leap_fire":
+			var cnt := maxi(1, mini(int(f.get("c", 1)), b.board.free_near(target, 2).size()))
+			var base := 2.6 if k in ["copy_creature", "chimera"] else 2.0
+			if k == "animate":
+				var found := 0
+				for oe in SpellEngine.ents_on(b, tiles, false):
+					if oe.kind == Entity.OBJECT and f.get("from", []).has(oe.def_id):
+						found += 1
+				base = 2.0 if found > 0 else 0.0
+			return base * float(cnt) * (0.6 + 0.6 * nd) * (1.0 if b.round_no <= 6 else 0.7)
+		"shape":
+			return 1.6 * nd
+		# --- the world: only matters with foes standing in it
+		"terr", "shatter", "breach", "carve", "rot_wood", "quake", "landslip", "ignite", "ignite_poison", "convert", "snuff", "absorb_fire", "rotate", "invert", "balance", "unmask", "reveal", "reave", "siphon", "cull", "burst_burning", "shrapnel":
+			var near := 0
+			for u in b.board.units():
+				if u.alive and u.is_unit() and u.team != caster.team and Board.cheb(u.pos, target) <= 3:
+					near += 1
+			return 0.5 + 0.5 * float(mini(near, 3))
+		"by_ground":
+			var gm: String = ""
+			var tdd: Dictionary = b.board.tdef(target)
+			gm = str(tdd.get("mat", "stone"))
+			var fl: Array = f.table[gm] if f.table.has(gm) else f.default
+			return _score_list(b, caster, fl, tiles, target, sp) if not fl.is_empty() else 0.0
+		"by_weather":
+			var wl: Array = f.get(b.weather, [])
+			if wl.is_empty():
+				wl = f.default
+			return _score_list(b, caster, wl, tiles, target, sp) if not wl.is_empty() else 0.0
+		"set_weather":
+			return 0.7
+		"contingent", "mimic":
+			return 1.4 * nd + (0.5 if b.round_no <= 4 else 0.0)
+		"cleanse", "strip":
+			return 0.0
+	# anything else: some value when it touches creatures, a little otherwise
+	return 0.9 if not (foes.is_empty() and allies.is_empty()) else 0.3
+

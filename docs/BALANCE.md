@@ -137,3 +137,5 @@ The old sim drew ten random spells (two per level) and counted battles that cont
 **Still to do:** decide what to do with the weak and strong outliers above (balance changes not yet made); more specialisation support (see TODO); teach the bot combos and mounts.
 
 **Summon-count trim (Spirit Legion 4→3, Call the Warhost 7→6).** 150-pair swaps against a level and role peer, after the cut: Spirit Legion 135 vs 108 wins (+18 points), Call the Warhost 145 vs 118 (+18 points). Both are still clearly stronger than their peers, so a further cut (HP or count) is the next lever.
+
+**HP trim on top (Legion Spirit and Warhost Footman HP 3→2).** 150-pair swaps: Spirit Legion 130 vs 118 wins (+8 points), Call the Warhost 139 vs 120 (+13 points). Down from +18 each after the count cut alone. Legion is close to its peers; Warhost is still ahead.

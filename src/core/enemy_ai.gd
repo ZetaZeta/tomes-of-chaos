@@ -337,6 +337,140 @@ static func _rogue_place(b: Battle, caster: Entity, target: Vector2i, f: Diction
 		m *= 0.2
 	return m
 
+
+## What an object is worth: its periodic and on-touch effects judged for each side, summed over the creatures it will reach.
+static func _obj_fx_value(fxl: Array, rogue_ok: bool = true) -> Dictionary:
+	var foe := 0.0
+	var ally := 0.0
+	var harm_ally := 0.0
+	for ox in fxl:
+		var sd: String = ox.get("side", "")
+		match ox.k:
+			"dmg", "drain":
+				var n := float(ox.get("n", 1))
+				if sd != "ally":
+					foe += n * 1.0
+				if sd != "foe":
+					harm_ally += n * 1.0
+			"heal":
+				if sd != "foe":
+					ally += float(ox.get("n", 1)) * 0.8
+			"st":
+				var bad: bool = DB.STATUS[ox.s].get("bad", false)
+				var v: float = STATUS_VALUE.get(ox.s, MORE_VALUE.get(ox.s, 2.4 if bad else 1.9))
+				if bad:
+					if sd != "ally":
+						foe += v * 0.7
+					if sd != "foe":
+						harm_ally += v * 0.7
+				elif sd != "foe":
+					ally += v * 0.5
+			"summon", "summon_tier", "summon_pool":
+				foe += 2.0 if rogue_ok else 0.5
+			"push", "yank":
+				foe += 0.5
+			"kill":
+				foe += 3.0
+				harm_ally += 3.0
+			_:
+				foe += 0.5
+				harm_ally += 0.3 if sd != "foe" else 0.0
+	return {"foe": foe, "ally": ally, "harm_ally": harm_ally}
+
+static func _score_obj(b: Battle, caster: Entity, f: Dictionary, ents: Array, v2: bool, target: Vector2i) -> float:
+	var od: Dictionary = DB.objs[f.o]
+	var fxs: Array = []
+	for key in ["tick", "on_enter", "pulse", "cycle", "on_spawn"]:
+		if od.has(key) and od[key].has("fx"):
+			fxs.append_array(od[key].fx)
+	var life: int = int(f.get("t", -2)) if int(f.get("t", -2)) != -2 else int(od.get("life", 4))
+	var turns := float(clampi(life if life > 0 else 4, 1, 6))
+	var any_hostile := false
+	var total := 0.0
+	if not v2:
+		var harm_foe_v1 := 0.0
+		var help_ally_v1 := 0.0
+		var harm_ally_v1 := 0.0
+		for ox in fxs:
+			var good1: bool = ox.k == "heal" or (ox.k == "st" and not DB.STATUS[ox.s].get("bad", false))
+			var sd1: String = ox.get("side", "")
+			if good1:
+				if sd1 != "foe":
+					help_ally_v1 = 1.0
+			else:
+				if sd1 != "ally":
+					harm_foe_v1 = 1.0
+				if sd1 != "foe":
+					harm_ally_v1 = 1.0
+		for en in ents:
+			if not en.is_unit():
+				continue
+			if en.team != caster.team:
+				any_hostile = true
+				total += 1.8 * harm_foe_v1 if not fxs.is_empty() else 0.3
+			else:
+				total += 0.8 * help_ally_v1 - 1.6 * harm_ally_v1
+		return total + (0.2 if not any_hostile else 0.0)
+	# periodic effects hit everything inside the object's own radius; on-touch effects catch what walks into it
+	var tick_fx: Array = []
+	var touch_fx: Array = []
+	var r := 0
+	for key in ["tick", "pulse", "cycle", "on_spawn"]:
+		if od.has(key) and od[key].has("fx"):
+			tick_fx.append_array(od[key].fx)
+			r = maxi(r, int(od[key].get("r", 0)))
+	if od.has("on_enter") and od.on_enter.has("fx"):
+		touch_fx.append_array(od.on_enter.fx)
+	var cyc: Dictionary = od.get("cycle", {})
+	var per: float = float(maxi(1, int(cyc.get("period", 1)))) if not cyc.is_empty() else 1.0
+	var reps := maxf(1.0, minf(turns, 3.0) / per)
+	var vt := _obj_fx_value(tick_fx, true)
+	var vo := _obj_fx_value(touch_fx, true)
+	var in_reach: Array = ents
+	if r > 0:
+		in_reach = []
+		for u in b.board.units():
+			if u.alive and u.is_unit() and Board.cheb(u.pos, target) <= r:
+				in_reach.append(u)
+	for en in in_reach:
+		if not en.is_unit():
+			continue
+		if en.team != caster.team:
+			any_hostile = true
+			total += vt.foe * reps * _control_scale(en) * 0.9
+		else:
+			total += (vt.ally * reps - vt.harm_ally * reps * 1.4) * _need_scale(b, en) * 0.8
+	if not touch_fx.is_empty():
+		for u in b.board.units():
+			if not u.alive or not u.is_unit():
+				continue
+			var d := Board.cheb(u.pos, target)
+			if u.team != caster.team:
+				if d <= 4:
+					any_hostile = true
+					total += vo.foe * (0.55 if d <= 2 else 0.3) * _control_scale(u) * (1.5 if od.has("roam") else 1.0)
+			elif d <= 2:
+				total -= vo.harm_ally * 0.3
+	if od.has("roam") and od.roam.get("mode", "") == "seek":
+		for u in b.board.units():          # a hunting object also finds foes further off
+			if u.alive and u.is_unit() and u.team != caster.team and Board.cheb(u.pos, target) <= 6:
+				total += (vo.foe + vt.foe) * 0.4
+	if od.get("bm", false):
+		# a wall earns its keep when foes are closing in and it stands between us and them
+		var near_foes := 0
+		var nearest := 99
+		for u in b.board.units():
+			if u.alive and u.is_unit() and u.team != caster.team:
+				var dd := Board.cheb(u.pos, caster.pos)
+				nearest = mini(nearest, dd)
+				if dd <= 5:
+					near_foes += 1
+		if near_foes > 0 and Board.cheb(target, caster.pos) <= 3 and Board.cheb(target, caster.pos) < nearest:
+			total += 0.9 + 0.35 * float(mini(near_foes, 3))
+	if not any_hostile:
+		total += 0.2
+	return minf(total, 12.0)
+
 static func _dmg_estimate(b: Battle, caster: Entity, f: Dictionary) -> float:
 	match f.k:
 		"opening":
@@ -460,6 +594,9 @@ static func _try_cast(b: Battle, e: Entity) -> bool:
 	var best_id := ""
 	var best_t := Vector2i.ZERO
 	var best_s := 1.4
+	if _v(e) >= 2:
+		# a spell is single-use, so an unused one is wasted: the longer the fight goes, the lower the bar
+		best_s = maxf(0.5, 1.4 - 0.12 * float(maxi(0, b.round_no - 3)))
 	var seen := {}
 	for sid in e.spells:
 		if seen.has(sid):
@@ -524,7 +661,7 @@ static func _score_list(b: Battle, caster: Entity, fxl: Array, tiles: Array, tar
 						total += 5.0 + en.hp
 			"st":
 				var bad: bool = DB.STATUS[f.s].get("bad", false)
-				var val: float = STATUS_VALUE.get(f.s, MORE_VALUE.get(f.s, (1.5 if bad else 1.2) if v2 else 1.0))
+				var val: float = STATUS_VALUE.get(f.s, MORE_VALUE.get(f.s, (2.4 if bad else 1.9) if v2 else 1.0))
 				for en in hit:
 					if not en.is_unit() or en.has_st(f.s):
 						continue
@@ -574,7 +711,7 @@ static func _score_list(b: Battle, caster: Entity, fxl: Array, tiles: Array, tar
 			"self_st":
 				if v2 and not caster.has_st(f.s):
 					var bad2: bool = DB.STATUS[f.s].get("bad", false)
-					var val2: float = STATUS_VALUE.get(f.s, MORE_VALUE.get(f.s, 1.2))
+					var val2: float = STATUS_VALUE.get(f.s, MORE_VALUE.get(f.s, 1.9 if v2 else 1.2))
 					total += (-val2 if bad2 else val2 * _need_scale(b, caster))
 				else:
 					total += 0.3
@@ -644,37 +781,7 @@ static func _score_list(b: Battle, caster: Entity, fxl: Array, tiles: Array, tar
 				else:
 					total += 0.3
 			"obj":
-				var od: Dictionary = DB.objs[f.o]
-				# Score by what the object's effects do to each side, not just "has a tick".
-				var fxs: Array = []
-				for key in ["tick", "on_enter"]:
-					if od.has(key):
-						fxs.append_array(od[key].fx)
-				var harm_foe := 0.0
-				var help_ally := 0.0
-				var harm_ally := 0.0
-				for ox in fxs:
-					var good: bool = ox.k == "heal" or (ox.k == "st" and not DB.STATUS[ox.s].get("bad", false))
-					var sd: String = ox.get("side", "")
-					if good:
-						if sd != "foe":
-							help_ally = 1.0
-					else:
-						if sd != "ally":
-							harm_foe = 1.0
-						if sd != "foe":
-							harm_ally = 1.0
-				var any_hostile := false
-				for en in ents:
-					if not en.is_unit():
-						continue
-					if en.team != caster.team:
-						any_hostile = true
-						total += 1.8 * harm_foe if not fxs.is_empty() else 0.3
-					else:
-						total += 0.8 * help_ally - 1.6 * harm_ally
-				if not any_hostile:
-					total += 0.2
+				total += _score_obj(b, caster, f, ents, v2, target)
 			"push", "yank":
 				for en in hit:
 					if en.is_unit():

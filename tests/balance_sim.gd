@@ -24,6 +24,8 @@ func _init() -> void:
 	var mode: String = args.get("mode", "probe")
 	if mode == "probe":
 		run_probe()
+	elif mode == "aiprobe":
+		run_aiprobe()
 	elif mode == "mix":
 		var need: Array = []
 		if args.get("need", "") != "":
@@ -123,6 +125,37 @@ func run_probe() -> void:
 	var f := FileAccess.open("/home/claude/work/out/balance_probe.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify(rows))
 	print("PROBED ", rows.size())
+
+## Best score the AI gives each spell in a typical mid-fight position (foes close, an ally beside the wizard); anything under the cast threshold is never used.
+func run_aiprobe() -> void:
+	var rows: Array = []
+	for id in DB.spell_order:
+		var sp: Dictionary = DB.spells[id]
+		var best := -99.0
+		var best_hurt := -99.0
+		for hurt in [false, true]:
+			var b := arena()
+			foe(b, Vector2i(6, 5))
+			foe(b, Vector2i(7, 5))
+			foe(b, Vector2i(6, 6))
+			foe(b, Vector2i(9, 4))
+			var al := b.spawn_creature("goblin", b.player.pos + Vector2i(1, 0), Battle.PLAYER, -1, true)
+			al.ab = []
+			b.player.spells = [id]
+			b.player.casts_left = 1
+			if hurt:
+				b.player.hp = maxi(1, b.player.max_hp / 3)
+				al.hp = maxi(1, al.max_hp / 2)
+			for t in SpellEngine.valid_targets(b, b.player, sp):
+				var sc := EnemyAI.score_spell(b, b.player, sp, t)
+				if hurt:
+					best_hurt = maxf(best_hurt, sc)
+				else:
+					best = maxf(best, sc)
+		rows.append({"id": id, "lvl": sp.lvl, "best": best, "hurt": best_hurt})
+	var f := FileAccess.open("/home/claude/work/out/ai_probe.json", FileAccess.WRITE)
+	f.store_string(JSON.stringify(rows))
+	print("AIPROBED ", rows.size())
 
 # ------------------------------------------------------------------ sim
 ## Spells that put creatures on the board for the wizard (excluded in nosum=1 runs to compare the other spells with each other).

@@ -5358,6 +5358,17 @@ func test_wave56() -> void:
 				made += 1
 	if made < 3:
 		issue("Pandemonium Gate should have released several creatures (got %d)" % made)
+	# Radiant damage: hits the living normally, undead and fiends for one more, celestials not at all
+	var b4 := arena([])
+	var liv: Entity = dummy(b4, Vector2i(5, 5), 1, 60)
+	var und: Entity = b4.spawn_creature("skeleton", Vector2i(6, 5), 1)
+	und.hp = 40
+	var cel: Entity = b4.spawn_creature("angel", Vector2i(7, 5), 1)
+	var r1: int = b4.deal_damage(null, liv, 2, "radiant")
+	var r2: int = b4.deal_damage(null, und, 2, "radiant")
+	var r3: int = b4.deal_damage(null, cel, 2, "radiant")
+	if r1 != 2 or r2 != 3 or r3 != 0:
+		issue("Radiant damage should be 2 / 3 / 0 against living / undead / celestial (got %d / %d / %d)" % [r1, r2, r3])
 	print("wave56 tests done")
 
 func test_wave55() -> void:

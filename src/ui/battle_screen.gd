@@ -495,6 +495,7 @@ func _type_col(t: String) -> Color:
 		"poison": return Color("70c030")
 		"necro": return Color("b060e0")
 		"holy": return Color("fff0a0")
+		"radiant": return Color("fffad0")
 		"force": return Color("a0a0ff")
 		"psychic": return Color("ff80c0")
 		"sonic": return Color("c0c0e0")

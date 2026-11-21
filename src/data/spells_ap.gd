@@ -6,8 +6,8 @@ extends RefCounted
 
 static func list() -> Array:
 	var L: Array = []
-	L.append(SB.sp("dawns_call", "Dawn's Call", "divine", 5, "self", 0, "burst", 6, [Fx.set_tod("day"), Fx.dmg(3, "holy", "foe"), Fx.heal(2, "ally")],
-		"Turn the rest of the battle to daylight. Allies within six tiles are healed 2 and undead and fiends in range burn for 3 holy damage."))
+	L.append(SB.sp("dawns_call", "Dawn's Call", "divine", 5, "self", 0, "burst", 6, [Fx.set_tod("day"), Fx.dmg(1, "radiant", "foe"), Fx.dmg(2, "holy", "foe"), Fx.heal(2, "ally")],
+		"Turn the rest of the battle to daylight. Allies within six tiles are healed 2, foes in range take 1 radiant damage, and undead and fiends burn for 4 in all."))
 	L.append(SB.sp("dusk_falls", "Dusk Falls", "illusion", 5, "self", 0, "burst", 6, [Fx.set_tod("night"), Fx.st("overlooked", 2, 1, "ally"), Fx.st("forgetful", 2, 1, "foe")],
 		"Turn the rest of the battle to night. Allies within six tiles slip from notice for two turns and foes forget anyone more than two tiles away."))
 	L.append(SB.sp("eclipse", "Eclipse", "divination", 6, "self", 0, "burst", 5, [Fx.set_tod("night", 4), Fx.st("blind", 2, 1, "foe")],

@@ -41,7 +41,7 @@ static var SCHOOLS := {
 }
 
 # ---------------------------------------------------------------- damage types
-const DTYPES := ["phys", "fire", "cold", "elec", "acid", "poison", "necro", "holy", "force", "psychic", "sonic"]
+const DTYPES := ["phys", "fire", "cold", "elec", "acid", "poison", "necro", "holy", "radiant", "force", "psychic", "sonic"]
 const ELEMENTAL := ["fire", "cold", "elec", "acid"]
 
 # ---------------------------------------------------------------- terrain
@@ -253,7 +253,7 @@ static var STATUS := {
 	"punished":  {"bad": true, "nm": "Backlash", "col": Color("d0a0a0"), "d": "Whenever it hurts anyone, it takes half that damage itself."},
 	"flamehit":  {"nm": "Flaming Strikes", "col": Color("ff7030"), "d": "Each of your attacks also burns the target: 1 fire damage and burning."},
 	"frosthit":  {"nm": "Freezing Strikes", "col": Color("a0e0ff"), "d": "Each of your attacks also chills the target: 1 cold damage and slowed for a turn."},
-	"sunhit":    {"nm": "Sunlit Strikes", "col": Color("fff080"), "d": "Each of your attacks also deals 2 holy damage (to undead and fiends)."},
+	"sunhit":    {"nm": "Sunlit Strikes", "col": Color("fff080"), "d": "Each of your attacks also deals 1 radiant damage (2 to undead and fiends)."},
 	"mountain_stance": {"nm": "Mountain Stance", "col": Color("b09060"), "d": "While you have not moved this turn, your spells do +1 damage and you take 1 less physical damage."},
 	"fueled":    {"nm": "Fuelled by Flame", "col": Color("ff9040"), "d": "Whenever you take fire damage you gain a Spell Power charge (up to 3): your next damaging spell does +1."},
 	"photosynthesis": {"nm": "Photosynthesis", "col": Color("90e060"), "d": "You heal 1 at the start of each of your turns while it is day and not raining or foggy."},

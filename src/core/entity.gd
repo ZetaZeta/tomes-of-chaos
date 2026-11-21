@@ -101,7 +101,7 @@ static func is_caster(e: Entity) -> bool:
 		return true
 	if e.has_ab("summoner") or e.has_ab("healer") or e.props.get("innate", false):
 		return true
-	if e.ranged.size() >= 3 and str(e.ranged[2]) in ["force", "psychic", "necro", "holy", "fire", "cold", "elec"]:
+	if e.ranged.size() >= 3 and str(e.ranged[2]) in ["force", "psychic", "necro", "holy", "radiant", "fire", "cold", "elec"]:
 		return true
 	return false
 

@@ -285,6 +285,8 @@ func _type_mod(tgt: Entity, dt: String, n: int) -> int:
 		d -= 1
 	if tgt.has_ab("vul:" + dt):
 		d += 1
+	if dt == "radiant" and (tgt.has_ab("undead") or tgt.has_ab("fiend")):
+		d += 1       # radiant light hurts everything, and the unholy most of all
 	if (tgt.has_st("stoneskin") or tgt.has_st("petrified") or tgt.has_st("gaseous")) and dt == "phys":
 		d -= 1
 	if tgt.has_st("warded") and dt in DB.ELEMENTAL:
@@ -397,7 +399,7 @@ func deal_damage(src: Entity, tgt: Entity, n: int, dt: String, opts: Dictionary 
 		elif src.has_ab("sunsick") and lit == "day":
 			n -= 1
 		if opts.get("spell", false):
-			if lit == "day" and dt in ["fire", "holy"]:
+			if lit == "day" and dt in ["fire", "holy", "radiant"]:
 				n += 1
 			elif lit == "night" and dt in ["necro", "psychic", "cold"]:
 				n += 1
@@ -2080,7 +2082,7 @@ func attack(att: Entity, tgt: Entity) -> bool:
 		if tgt.alive:
 			apply_status(tgt, "slowed", 1, 1, att)
 	if att.alive and tgt.alive and att.has_st("sunhit"):
-		deal_damage(att, tgt, 2, "holy", {"spell": true})
+		deal_damage(att, tgt, 1, "radiant", {"spell": true})
 	if att.alive and tgt.alive and att.has_ab("spelldrain") and tgt.kind == Entity.WIZARD and not tgt.spells.is_empty():
 		var lost: String = tgt.spells[rng.randi() % tgt.spells.size()]
 		tgt.spells.erase(lost)

@@ -18,7 +18,7 @@ static func list() -> Array:
 	L.append(SB.buff("freezing_strikes", "Freezing Strikes", "cryomancy", 1, [Fx.st("frosthit", 5)],
 		"For five turns each of your attacks also chills the target: 1 cold damage and slowed for a turn."))
 	L.append(SB.buff("sunlit_strikes", "Sunlit Strikes", "divine", 1, [Fx.st("sunhit", 5)],
-		"For five turns each of your attacks also deals 2 holy damage, which hurts only undead and fiends."))
+		"For five turns each of your attacks also deals 1 radiant damage, 2 to undead and fiends."))
 	L.append(SB.buff("arcane_armament", "Arcane Armament", "transmutation", 1,
 		[Fx.random([[Fx.st("flamehit", 6)], [Fx.st("frosthit", 6)], [Fx.st("stormhit", 6)], [Fx.st("stonehit", 6)], [Fx.st("sunhit", 6)]])],
 		"Your weapon takes a random elemental enchantment for six turns: fire, frost, storm, stone or sun."))

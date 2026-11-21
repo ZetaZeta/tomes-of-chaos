@@ -259,6 +259,8 @@ static func register() -> void:
 		"tick": {"r": 0, "fx": [Fx.dmg(2, "force")]}})
 	o("malign_gate", "Malign Gateway", "c03080", "pit", {"hp": 0, "life": 8,
 		"cycle": {"period": 2, "r": 0, "fx": [Fx.summon_pool(["imp", "hell_hound", "shadow_demon"], true, 4)]}})
+	o("pande_gate", "Pandemonium Gate", "a02040", "pit", {"hp": 0, "life": 4,
+		"cycle": {"period": 1, "r": 0, "fx": [Fx.summon_tier_rogue(4, 1)]}})
 	o("fireball_charge", "Delayed Fireball", "ff6020", "keg", {"life": 2,
 		"cycle": {"period": 2, "r": 3, "fuse": true, "fx": [Fx.dmg(4, "fire", "foe"), Fx.st("burning", 2, 1, "foe")]}})
 	o("prism_charge", "Fulminant Prism", "e0a0ff", "keg", {"life": 2,

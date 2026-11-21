@@ -2327,7 +2327,13 @@ static func _apply_one(b: Battle, ctx: Dictionary, f: Dictionary, tiles: Array, 
 					b.ev("msg", {"text": "Every remaining spell is spent."})
 		"summon_tier":
 			if caster == null:
-				return
+				# an object (gate) is calling: act for the wizard on the object's team
+				for wz in b.board.units_of(ctx.get("team", 0)):
+					if wz.kind == Entity.WIZARD and wz.alive:
+						caster = wz
+						break
+				if caster == null:
+					return
 			var pool2: Array = []
 			for mid in DB.monsters:
 				var md: Dictionary = DB.monsters[mid]

@@ -5343,6 +5343,21 @@ func test_wave56() -> void:
 			issue("A freshly loosed fiend should not hit its summoner on its first action")
 		if not fiend.has_st("rampage"):
 			issue("The fiend should still be loose after its first action")
+	# Pandemonium Gate keeps spitting out creatures
+	var b3 := arena(["pandemonium_gate"])
+	var w3: Entity = b3.player
+	w3.pos = Vector2i(1, 1)
+	dummy(b3, Vector2i(9, 7), 1, 60)
+	var okg: bool = b3.cast_spell(w3, "pandemonium_gate", Vector2i(5, 4))
+	var made := 0
+	for rr in range(5):
+		b3.end_player_phase()
+		made = 0
+		for u in b3.board.units_of(Battle.PLAYER):
+			if u.kind == Entity.CREATURE:
+				made += 1
+	if made < 3:
+		issue("Pandemonium Gate should have released several creatures (got %d)" % made)
 	print("wave56 tests done")
 
 func test_wave55() -> void:

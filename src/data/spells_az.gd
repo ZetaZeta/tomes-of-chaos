@@ -16,10 +16,10 @@ static func list() -> Array:
 	L.append(SB.summon("blade_dance", "Blade Dance", "evocation", 3, 5, "dancing_blade", 3,
 		"Three swords whirl into the air and fight without a wielder. You cannot command them."))
 	L.append(SB.summon("spirit_legion", "Spirit Legion", "divine", 4, 5, "legion_spirit", 3,
-		"A legion of radiant spirits rises to fight for you, but takes its orders from no one."))
+		"A legion of radiant spirits rises to fight for you. Their light dazzles whatever they strike, and they take their orders from no one."))
 	L.append(SB.summon("wyrmling_brood", "Wyrmling Brood", "conjuration", 4, 5, "wyrmling", 3,
 		"A brood of fire-spitting wyrmlings hatches and takes wing against your foes, uncommanded."))
-	L.append(SB.summon("call_the_warhost", "Call the Warhost", "conjuration", 5, 5, "warhost_footman", 6,
+	L.append(SB.summon("call_the_warhost", "Call the Warhost", "conjuration", 6, 5, "warhost_footman", 6,
 		"A full warhost of footmen marches out of nowhere and advances on its own. A great force, but one you cannot hold back."))
 	L.append(SB.summon("avalanche_giant", "Unleash the Avalanche Giant", "earth", 5, 5, "avalanche_giant", 1,
 		"A giant of rock and rubble tears free of the ground and rampages towards your enemies. It fights for you, but you cannot hold it back."))

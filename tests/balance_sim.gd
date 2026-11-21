@@ -14,6 +14,11 @@ func _init() -> void:
 		if kv.size() == 2:
 			args[kv[0]] = kv[1]
 	DB.init()
+	if args.get("wh", "") != "":      # wh=count,hp,dmg : override Call the Warhost for experiments
+		var w: PackedStringArray = String(args.wh).split(",")
+		DB.spells["call_the_warhost"].fx[0]["c"] = int(w[0])
+		DB.monsters["warhost_footman"]["hp"] = int(w[1])
+		DB.monsters["warhost_footman"]["dmg"] = int(w[2])
 	EnemyAI.skill[0] = int(args.get("ai_p", "2"))
 	EnemyAI.skill[1] = int(args.get("ai_e", "2"))
 	var mode: String = args.get("mode", "probe")

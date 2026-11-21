@@ -298,7 +298,7 @@ static func register() -> void:
 	m("legion_spirit", "Legion Spirit", "ghost", "f0f0c0", 2, 3, 2, 3, ["fly", "free", "imm:holy"], {"summon": true, "on_hit": ["blind", 1]})
 	m("dancing_blade", "Dancing Blade", "golem", "c0d0e0", 2, 4, 2, 2, ["fly", "construct", "free", "imm:poison"], {"summon": true})
 	m("wyrmling", "Wyrmling", "dragon", "e08040", 4, 3, 1, 3, ["fly", "free", "imm:fire"], {"summon": true, "rg": [3, 2, "fire"]})
-	m("warhost_footman", "Warhost Footman", "humanoid", "c0a060", 2, 3, 2, 3, ["free"], {"summon": true})
+	m("warhost_footman", "Warhost Footman", "humanoid", "c0a060", 3, 3, 1, 3, ["free"], {"summon": true})
 	m("avalanche_giant", "Avalanche Giant", "brute", "a0a8b0", 12, 2, 3, 5, ["free", "heavy", "reach", "res:phys"], {"summon": true})
 	# ---- pestilence carriers: their bites start spreading sicknesses
 	m("plague_rat", "Plague Rat", "beast", "8a9a50", 1, 3, 1, 1, ["immst:asleep"], {"on_hit": ["wasting", 3]})

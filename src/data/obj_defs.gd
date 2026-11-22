@@ -38,7 +38,8 @@ static func register() -> void:
 	o("explosive_barrel", "Powder Keg", "a04020", "keg", {"hp": 1, "bm": true, "flam": true,
 		"on_death": {"r": 1, "fx": [Fx.dmg(1, "fire"), Fx.st("burning", 2)]}})
 	o("thorn_wall", "Wall of Thorns", "4a7a30", "thorn", {"hp": 2, "bm": true, "flam": true, "life": 8,
-		"bump": [1, "phys"]})
+		"bump": [1, "phys"], "pulse": {"r": 1, "fx": [Fx.dmg(1, "phys", "foe")]}})
+	o("wood_wall", "Wooden Barricade", "9a6a38", "palisade", {"hp": 2, "bm": true, "flam": true, "life": 6})
 	o("mushroom", "Giant Mushroom", "a050a0", "mushroom", {"hp": 1, "bm": true, "life": 10})
 	o("gravestone", "Gravestone", "7a7a80", "grave", {"hp": 0, "bm": true})
 	o("pedestal", "Pedestal", "d0b050", "pedestal", {"hp": 0, "bm": false, "book": true})

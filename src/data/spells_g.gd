@@ -37,7 +37,7 @@ static func list() -> Array:
 	L.append(SB.ally("spellguard", "Spellguard", "abjuration", 4, 5, [Fx.st("mantled", 6)], "Spells do 1 less damage to the target."))
 	L.append(SB.ally("clear_sight", "Clear Sight", "divination", 1, 5, [Fx.strip(["blind"]), Fx.st("sighted", 8)], "Cures blindness and keeps it away."))
 	L.append(SB.ally("water_breathing", "Water Breathing", "transmutation", 2, 5, [Fx.st("waterbreathing", 8)], "The target can swim through deep water."))
-	L.append(SB.sp("thorn_hedge", "Thorn Hedge", "nature", 1, "self", 0, "burst", 1, [Fx.obj("thorn_wall", 4)], "A ring of thorny hedge rises around you. Hack your way out or wait.", {"hole": true}))
+	L.append(SB.row_wall("thorn_hedge", "Wooden Barricade", "nature", 1, 5, 3, [Fx.obj("wood_wall", 6)], "Three stout timber stakes thrust up from the ground. Nothing gets past them until they rot or burn."))   # id kept from the old Thorn Hedge so saves still load
 	L.append(SB.burst("reinforce", "Reinforce", "earth", 2, 6, 2, [Fx.fortify(2, 4)], "Walls, barrels and statues in the area gain 2 HP and last longer."))
 	# ---------------------------------------------------------------- crowd control
 	L.append(SB.burst("calm_emotions", "Calm Emotions", "enchantment", 2, 6, 2, [Fx.st("pacified", 3, 1, "foe")], "Foes lay down their arms until someone hurts them.", {"selective": true}))

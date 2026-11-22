@@ -291,6 +291,11 @@ static func object_image(sym: String, col: Color) -> Image:
 			_px(img, 8, 2, Color("f0d040"))
 			_px(img, 9, 1, Color("ff8030"))
 			_px(img, 7, 7, Color("f0d040"))
+		"palisade":
+			for x in range(1, 15, 4):
+				_rect(img, x, 4, x + 2, 14, col)
+				_tri(img, Vector2(x, 4), Vector2(x + 1, 1), Vector2(x + 2, 4), l)
+				_rect(img, x, 8, x + 2, 8, d)
 		"thorn":
 			_rect(img, 1, 7, 14, 13, col)
 			for x in range(1, 15, 3):

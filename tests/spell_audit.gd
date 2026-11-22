@@ -5369,6 +5369,29 @@ func test_wave56() -> void:
 	var r3: int = b4.deal_damage(null, cel, 2, "radiant")
 	if r1 != 2 or r2 != 3 or r3 != 0:
 		issue("Radiant damage should be 2 / 3 / 0 against living / undead / celestial (got %d / %d / %d)" % [r1, r2, r3])
+	# Thorn walls prick whoever stands beside them; the wooden barricade is plain timber
+	var b5 := arena([])
+	var p5: Entity = b5.player
+	p5.pos = Vector2i(3, 3)
+	var f5: Entity = dummy(b5, Vector2i(8, 6), 1, 20)
+	b5.spawn_object("thorn_wall", Vector2i(8, 5), -2, 0)
+	b5.spawn_object("wood_wall", Vector2i(9, 5), -2, 0)
+	var g5: Entity = dummy(b5, Vector2i(9, 6), 1, 20)
+	b5.apply_status(f5, "rooted", 5, 1, null)
+	b5.end_player_phase()
+	if f5.hp >= 20:
+		issue("A Wall of Thorns should prick a foe standing beside it (hp %d)" % f5.hp)
+	var b6 := arena(["thorn_hedge"])
+	var p6: Entity = b6.player
+	p6.pos = Vector2i(3, 5)
+	if not b6.cast_spell(p6, "thorn_hedge", Vector2i(8, 5)):
+		issue("cast refused: Wooden Barricade")
+	var walls := 0
+	for o in b6.board.ents:
+		if o.kind == Entity.OBJECT and o.def_id == "wood_wall":
+			walls += 1
+	if walls != 3:
+		issue("Wooden Barricade should raise 3 timber walls (got %d)" % walls)
 	print("wave56 tests done")
 
 func test_wave55() -> void:

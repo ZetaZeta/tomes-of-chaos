@@ -68,7 +68,7 @@ static func _near_tree(b: Battle, p: Vector2i) -> bool:
 			if b.board.terrain(q) == "tree":
 				return true
 			for o in b.board.objects_at(q):
-				if o.alive and o.def_id in ["tree", "thorn_wall"]:
+				if o.alive and o.def_id in ["tree", "thorn_wall", "wood_wall"]:
 					return true
 	return false
 

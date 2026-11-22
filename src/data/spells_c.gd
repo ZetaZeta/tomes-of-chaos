@@ -74,7 +74,7 @@ static func list() -> Array:
 	L.append(SB.ally("barkskin", "Barkskin", "nature", 1, 5, [Fx.st("stoneskin", 6)], "Skin like bark."))
 	L.append(SB.bolt("thorn_whip", "Thorn Whip", "nature", 2, 4, [Fx.dmg(1, "phys"), Fx.yank()], "Lash and drag."))
 	L.append(SB.burst("spike_growth", "Spike Growth", "nature", 2, 6, 2, [Fx.obj("thorns", 10)], "Thorns spring from the ground."))
-	L.append(SB.wall("wall_of_thorns_spell", "Wall of Thorns", "nature", 3, 5, 5, [Fx.obj("thorn_wall")], "A hedge of briars."))
+	L.append(SB.wall("wall_of_thorns_spell", "Wall of Thorns", "nature", 3, 5, 5, [Fx.obj("thorn_wall")], "A hedge of briars. Anything that stands beside it is pricked every turn."))
 	L.append(SB.aura("magic_wood", "Magic Wood", "nature", 3, 2, [Fx.obj("tree", 8)], "A grove rises around you: a safe clearing to heal, summon and cast from.", {"hole": true, "ring": true}))
 	L.append(SB.summon("shadow_wood", "Shadow Wood", "nature", 3, 4, "treant_sapling", 3, "Saplings with a grudge. They take root and cannot move."))
 	L.append(SB.buff("treeform", "Treeform", "nature", 3, [Fx.st("stoneskin", 6), Fx.st("thorns", 6), Fx.st("regen", 4)], "Bark, thorns and rising sap."))

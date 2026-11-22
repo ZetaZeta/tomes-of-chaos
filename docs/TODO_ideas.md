@@ -35,3 +35,14 @@ Raised on 2026-11-18. Each item is to be discussed with the user before work sta
 ## Art (in progress)
 - Decided: openRPG tiles (floor, wall, water, lava, grass, no edge tiles) + Dungeon Crawl Stone Soup monsters. Edge/corner autotiling was tried and dropped.
 - Pending: pixel-size mismatch (16px tiles at 4x vs 32px sprites at 2x), water shoreline, credits file.
+
+
+## Direction (decided 2026-11-22)
+The core loop stays as it is. Out of scope because they would turn it into a different game: shops and events between battles, build specialisation, school mastery and perk systems. In scope, roughly in this order of interest, each to be designed with the user before building:
+- Monster behaviour (ranged kiting, summoners to kill first, enemy wizards that cast, groups that use terrain).
+- More objective types so that killing everything is not always the answer (escort, survive N turns, hold a point, assassinate a target).
+- Elites that fit the current structure (a stronger variant of a normal fight, with a better reward).
+- Terrain and weather interacting with spells.
+- Mounts: make the bot able to use them, then check if they are too strong or weak.
+- Level structure: make level types feel distinct by building area-specific layouts (for example themed rooms joined by doors instead of open fields).
+After these, re-measure the difficulty curve (win rate was 64% / 43% / 32% across bands, and the stronger bot has probably made it easier).

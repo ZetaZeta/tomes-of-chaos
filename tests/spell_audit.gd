@@ -5392,6 +5392,32 @@ func test_wave56() -> void:
 			walls += 1
 	if walls != 3:
 		issue("Wooden Barricade should raise 3 timber walls (got %d)" % walls)
+	# Kiting (skill 3): an archer with a wizard in its face steps back out of reach, then shoots
+	var b7 := arena([])
+	b7.player.pos = Vector2i(5, 5)
+	var arch: Entity = b7.spawn_creature("goblin_archer", Vector2i(6, 5), 1)
+	arch.moves_left = 2
+	arch.attacks_left = 1
+	var old_skill: int = EnemyAI.skill[1]
+	EnemyAI.skill[1] = 3
+	var hp7: int = b7.player.hp
+	EnemyAI.take_turn(b7, arch)
+	EnemyAI.skill[1] = old_skill
+	var gap: int = Board.cheb(arch.pos, b7.player.pos)
+	if gap < 3:
+		issue("A kiting archer should back away to range 3 or more (gap %d)" % gap)
+	# Summoner (skill 3) steps back from a foe in its face, keeping its minions near
+	var b8 := arena([])
+	b8.player.pos = Vector2i(5, 5)
+	var nec: Entity = b8.spawn_creature("necromancer_apprentice", Vector2i(6, 5), 1)
+	nec.moves_left = 2
+	nec.attacks_left = 1
+	EnemyAI.skill[1] = 3
+	EnemyAI.take_turn(b8, nec)
+	EnemyAI.skill[1] = old_skill
+	var gap8: int = Board.cheb(nec.pos, b8.player.pos)
+	if gap8 < 3:
+		issue("A summoner should step back from an adjacent foe (gap %d)" % gap8)
 	print("wave56 tests done")
 
 func test_wave55() -> void:

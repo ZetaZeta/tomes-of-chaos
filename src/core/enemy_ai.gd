@@ -55,6 +55,8 @@ static func take_turn(b: Battle, e: Entity) -> void:
 				if not e.alive:
 					return
 	var wiz2 := _v(e) >= 2 and e.kind == Entity.WIZARD and not e.has_ab("stationary")
+	if _v(e) >= 3 and e.kind == Entity.CREATURE and e.has_spellbook() and not e.has_ab("stationary") and not e.props.get("carrier", false):
+		wiz2 = true        # casters among the monsters stay back and cast, like a wizard would
 	if wiz2 and e.moves_left > 0 and not e.has_st("rooted"):
 		_wizard_step(b, e, hostiles)
 		if not e.alive or b.result != "":
@@ -77,18 +79,43 @@ static func take_turn(b: Battle, e: Entity) -> void:
 		if best != null:
 			b.attack(e, best)
 		return
+	var backline := _v(e) >= 3 and e.has_ab("summoner") and not e.has_ab("stationary")
+	if backline:
+		_hang_back(b, e, hostiles)
+		if not e.alive or b.result != "":
+			return
 	var guard := 0
 	while e.alive and e.attacks_left > 0 and b.result == "" and guard < 4:
 		guard += 1
 		hostiles = _hostiles(b, e)
 		if hostiles.is_empty():
 			return
+		if backline:
+			# a summoner only hits what is already in reach; its minions do the walking
+			var tgt: Entity = null
+			var ts := -999.0
+			for t in hostiles:
+				if b.can_attack(e, t):
+					var sc2 := _target_score(b, e, t)
+					if sc2 > ts:
+						ts = sc2
+						tgt = t
+			if tgt == null:
+				break
+			b.attack(e, tgt)
+			continue
 		if not _act_once(b, e, hostiles):
 			break
 	# nothing to hit: still close the distance
 	if e.alive and e.moves_left > 0 and not e.has_ab("stationary") and b.result == "":
 		hostiles = _hostiles(b, e)
 		if not hostiles.is_empty():
+			if backline:
+				var nd2 := 99
+				for h in hostiles:
+					nd2 = mini(nd2, Board.cheb(e.pos, h.pos))
+				if nd2 <= 6:
+					return          # close enough: stay behind the minions
 			_approach(b, e, hostiles)
 
 static func _hostiles(b: Battle, e: Entity) -> Array:
@@ -133,6 +160,8 @@ static func _target_score(b: Battle, e: Entity, t: Entity) -> float:
 	s += 3.0 / float(maxi(t.hp, 1))
 	if t.kind == Entity.WIZARD:
 		s += 3.0
+	if _v(e) >= 3 and t.has_ab("summoner"):
+		s += 2.5
 	if t.has_ab("phantom") and t.team != e.team:
 		s += 6.0 if not e.has_st("truesight") else -9.0
 	if t.has_st("shielded") or t.has_st("mirror"):
@@ -142,6 +171,37 @@ static func _target_score(b: Battle, e: Entity, t: Entity) -> float:
 
 ## Attack if something is in reach (moving first if needed). Returns true if it did something.
 static func _act_once(b: Battle, e: Entity, hostiles: Array) -> bool:
+	# 0. shooters back away from anything that is about to hit them, then shoot
+	if _v(e) >= 3 and _is_shooter(e) and e.moves_left > 0 and not e.has_ab("stationary") and not e.has_st("rooted"):
+		var cur_min := 99
+		for h in hostiles:
+			cur_min = mini(cur_min, Board.cheb(e.pos, h.pos))
+		if cur_min <= 2:
+			var kprev := {}
+			var kreach := b.board.reach(e, e.moves_left, kprev, true)
+			var ktile := Vector2i(-1, -1)
+			var kt: Entity = null
+			var ksc := -999.0
+			for p in kreach:
+				if p == e.pos:
+					continue
+				var mind := 99
+				for h in hostiles:
+					mind = mini(mind, Board.cheb(p, h.pos))
+				if mind < 3 or mind <= cur_min:
+					continue
+				for t in hostiles:
+					if _hit_kind_from(b, e, p, t) == "ranged":
+						var ksc2 := _target_score(b, e, t) + 0.3 * float(mind) - 0.04 * float(kreach[p])
+						if ksc2 > ksc:
+							ksc = ksc2
+							ktile = p
+							kt = t
+			if kt != null:
+				b.walk(e, b.board.path_from(kprev, e.pos, ktile))
+				if e.alive and kt.alive and b.can_attack(e, kt):
+					return b.attack(e, kt)
+				return false
 	# 1. attack from where we stand
 	var best: Entity = null
 	var bs := -999.0
@@ -184,6 +244,42 @@ static func _act_once(b: Battle, e: Entity, hostiles: Array) -> bool:
 				return b.attack(e, best_t)
 			return false
 	return false
+
+## Summoners keep their minions between themselves and the foe: step away from anything close, toward friends.
+static func _hang_back(b: Battle, e: Entity, hostiles: Array) -> void:
+	if e.moves_left <= 0 or e.has_st("rooted"):
+		return
+	var cur_min := 99
+	for h in hostiles:
+		cur_min = mini(cur_min, Board.cheb(e.pos, h.pos))
+	if cur_min > 4:
+		return
+	var prev := {}
+	var reach := b.board.reach(e, e.moves_left, prev, true)
+	var best := e.pos
+	var best_sc := -999.0
+	for p in reach:
+		var mind := 99
+		for h in hostiles:
+			mind = mini(mind, Board.cheb(p, h.pos))
+		var friends := 0
+		for u in b.board.units():
+			if u.alive and u != e and u.team == e.team and Board.cheb(u.pos, p) <= 2:
+				friends += 1
+		var sc := float(mini(mind, 5)) + 0.5 * float(mini(friends, 3)) - 0.1 * float(reach[p])
+		if b.board.is_dangerous(e, p):
+			sc -= 3.0
+		if p == e.pos:
+			sc += 0.5
+		if sc > best_sc:
+			best_sc = sc
+			best = p
+	if best != e.pos:
+		b.walk(e, b.board.path_from(prev, e.pos, best))
+
+## A unit whose ranged attack is at least as good as its melee one.
+static func _is_shooter(e: Entity) -> bool:
+	return e.ranged.size() >= 3 and int(e.ranged[1]) >= e.dmg and not e.has_ab("reach")
 
 static func _hit_kind_from(b: Battle, e: Entity, p: Vector2i, t: Entity) -> String:
 	if e.has_st("feared"):

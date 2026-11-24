@@ -20,7 +20,7 @@ func _init() -> void:
 		DB.monsters["warhost_footman"]["hp"] = int(w[1])
 		DB.monsters["warhost_footman"]["dmg"] = int(w[2])
 	EnemyAI.skill[0] = int(args.get("ai_p", "2"))
-	EnemyAI.skill[1] = int(args.get("ai_e", "2"))
+	EnemyAI.skill[1] = int(args.get("ai_e", "3"))
 	var mode: String = args.get("mode", "probe")
 	if mode == "probe":
 		run_probe()

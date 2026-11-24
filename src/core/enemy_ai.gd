@@ -15,7 +15,7 @@ const STATUS_VALUE := {
 
 ## Skill per team: 1 = the original greedy AI, 2 = the improved one (spell timing and value, caster positioning).
 ## The balance bot and the enemy side both use it; tests can set a team to 1 to compare.
-static var skill := {0: 2, 1: 2}
+static var skill := {0: 2, 1: 3}
 static var dbg := false
 
 const MORE_VALUE := {
